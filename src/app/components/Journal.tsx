@@ -4,7 +4,7 @@ import {
   TrendingUp, TrendingDown, Edit2, Trash2, MessageCircle, Camera,
   ArrowDownLeft, ArrowUpRight,
 } from "lucide-react";
-import { Sheet, Field, Input, Select, Btn } from "./ui";
+import { Field, Input, Select } from "./ui";
 import { api } from "../../lib/api";
 import type { Transaction, Category, Comment, Currency, TxType } from "../../lib/api";
 
@@ -126,6 +126,9 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
   const fileRef = useRef<HTMLInputElement>(null);
   const cats = categories.filter(c=>c.type===type);
   const amtNum = parseFloat(amount)||0;
+  const isIncome = type==="income";
+  const accentColor = isIncome ? "#10b981" : "#ef4444";
+  const canSave = !!amount && amtNum > 0 && !!category;
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if(!file) return;
@@ -135,66 +138,127 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
     setUploading(false);
   };
 
+  const handleSave = async () => {
+    if(!canSave) return;
+    setSaving(true);
+    try {
+      await onSave({type,category,amount:amtNum,currency,date,description:desc,receipt_url:receiptUrl},initial?.id);
+      onClose();
+    } finally { setSaving(false); }
+  };
+
   return (
-    <Sheet title={initial?"Редактировать":"Новая операция"} onClose={onClose}>
-      <div className="flex bg-muted rounded-xl p-1 mb-4">
-        {(["expense","income"] as TxType[]).map(t=>(
-          <button key={t} onClick={()=>{setType(t);if(!initial)setCategory("");}}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${type===t?t==="expense"?"bg-red-500 text-white":"bg-emerald-500 text-white":"text-muted-foreground"}`}>
-            {t==="expense"?"Расход":"Доход"}
-          </button>
-        ))}
-      </div>
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground block mb-1.5">Сумма</label>
-          <div className="flex gap-2">
-            <Input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
-              className="flex-1 text-3xl font-bold font-mono py-4" placeholder="0" inputMode="decimal" autoFocus/>
-            <div className="flex flex-col gap-1">
-              {(["UZS","USD"] as Currency[]).map(c=>(
-                <button key={c} onClick={()=>setCurrency(c)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all ${currency===c?"border-primary bg-primary text-white":"border-border text-muted-foreground"}`}>
-                  {c==="UZS"?"сум":"$"}
-                </button>
-              ))}
-            </div>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}/>
+      {/* Sheet не использует Sheet компонент намеренно — нужен полный контроль над скроллом при клавиатуре */}
+      <div className="relative rounded-t-3xl flex flex-col"
+        style={{background:"var(--card)",maxHeight:"92dvh",boxShadow:"0 -8px 40px rgba(0,0,0,0.3)"}}>
+        {/* Drag handle + header — фиксированные */}
+        <div className="px-5 pt-3 pb-0 flex-shrink-0">
+          <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-3"/>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">{initial?.id?"Редактировать":"Новая операция"}</h2>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+              <X size={16}/>
+            </button>
           </div>
-          {currency==="USD"&&amtNum>0&&<p className="text-xs text-muted-foreground mt-1">≈ {fmtUZS(amtNum*usdRate)} по курсу {usdRate} сум/$</p>}
-        </div>
-        <Field label="Категория">
-          <Select value={category} onChange={e=>setCategory(e.target.value)}>
-            <option value="">Выберите</option>
-            {cats.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
-          </Select>
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Дата"><Input type="date" value={date} onChange={e=>setDate(e.target.value)}/></Field>
-          <Field label="Комментарий"><Input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Необязательно"/></Field>
-        </div>
-        {type==="expense"&&(
-          <div>
-            <label className="text-sm font-medium text-muted-foreground block mb-1.5">Фото чека</label>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden"/>
-            {receiptUrl?(
-              <div className="relative">
-                <img src={receiptUrl} alt="чек" className="w-full h-32 object-cover rounded-xl border border-border"/>
-                <button onClick={()=>setReceiptUrl(null)} className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs">×</button>
-              </div>
-            ):(
-              <button onClick={()=>fileRef.current?.click()} disabled={uploading}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                <Camera size={16}/>{uploading?"Загрузка...":"Сфотографировать"}
+          {/* Тип — всегда виден */}
+          <div className="flex rounded-2xl p-1 mb-4" style={{background:"var(--muted)"}}>
+            {(["expense","income"] as TxType[]).map(t=>(
+              <button key={t} onClick={()=>{setType(t);if(!initial)setCategory("");}}
+                className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
+                style={type===t ? {background:t==="expense"?"#ef4444":"#10b981",color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"} : {color:"var(--muted-foreground)"}}>
+                {t==="expense"?"💸 Расход":"💰 Доход"}
               </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Скроллируемый контент */}
+        <div className="overflow-y-auto px-5 pb-6 space-y-4 flex-1">
+          {/* Большое поле суммы */}
+          <div className="rounded-2xl p-4" style={{background:accentColor+"15",border:`1.5px solid ${accentColor}30`}}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{color:accentColor}}>Сумма</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={amount}
+                onChange={e=>setAmount(e.target.value)}
+                placeholder="0"
+                autoFocus
+                className="flex-1 bg-transparent text-4xl font-black font-mono outline-none w-0"
+                style={{color:accentColor,fontFamily:"'JetBrains Mono',monospace"}}
+              />
+              <div className="flex gap-1.5">
+                {(["UZS","USD"] as Currency[]).map(c=>(
+                  <button key={c} onClick={()=>setCurrency(c)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all"
+                    style={currency===c ? {borderColor:accentColor,background:accentColor,color:"#fff"} : {borderColor:"var(--border)",color:"var(--muted-foreground)"}}>
+                    {c==="UZS"?"сум":"$"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {currency==="USD"&&amtNum>0&&(
+              <p className="text-xs mt-1.5 opacity-60">≈ {fmtUZS(amtNum*usdRate)}</p>
             )}
           </div>
-        )}
-        <Btn onClick={async()=>{if(!amount||!category)return;setSaving(true);await onSave({type,category,amount:amtNum,currency,date,description:desc,receipt_url:receiptUrl},initial?.id);setSaving(false);onClose();}}
-          disabled={saving||uploading||!amount||!category}>
-          {saving?"Сохранение...":initial?"Сохранить":`Добавить ${fmtMoney(amtNum,currency)}`}
-        </Btn>
+
+          {/* Категория */}
+          <Field label="Категория">
+            <select value={category} onChange={e=>setCategory(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold appearance-none outline-none transition-all"
+              style={{background:"var(--input-background)",border:`1.5px solid ${category?"var(--primary)":"var(--border)"}`}}>
+              <option value="">Выберите категорию</option>
+              {cats.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+          </Field>
+
+          {/* Дата и комментарий */}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Дата">
+              <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none"
+                style={{background:"var(--input-background)",border:"1.5px solid var(--border)"}}/>
+            </Field>
+            <Field label="Комментарий">
+              <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Необязательно"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none"
+                style={{background:"var(--input-background)",border:"1.5px solid var(--border)"}}/>
+            </Field>
+          </div>
+
+          {/* Фото чека */}
+          {type==="expense"&&(
+            <div>
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden"/>
+              {receiptUrl?(
+                <div className="relative">
+                  <img src={receiptUrl} alt="чек" className="w-full h-32 object-cover rounded-2xl"/>
+                  <button onClick={()=>setReceiptUrl(null)} className="absolute top-2 right-2 w-7 h-7 bg-black/60 text-white rounded-full flex items-center justify-center text-sm">×</button>
+                </div>
+              ):(
+                <button onClick={()=>fileRef.current?.click()} disabled={uploading}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-medium transition-colors"
+                  style={{border:"2px dashed var(--border)",color:"var(--muted-foreground)"}}>
+                  <Camera size={16}/>{uploading?"Загрузка...":"📷 Сфотографировать чек"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Кнопка сохранения */}
+          <button
+            onClick={handleSave}
+            disabled={saving||uploading||!canSave}
+            className="w-full py-4 rounded-2xl font-bold text-base text-white transition-all active:scale-98 disabled:opacity-40"
+            style={{background:canSave?accentColor:"var(--muted)",boxShadow:canSave?`0 8px 24px ${accentColor}40`:"none"}}>
+            {saving ? "Сохранение..." : initial?.id ? "Сохранить изменения" : `${isIncome?"💰 Добавить доход":"💸 Добавить расход"} ${amtNum>0?`— ${fmtMoney(amtNum,currency)}`:""}`}
+          </button>
+        </div>
       </div>
-    </Sheet>
+    </div>
   );
 }
 
