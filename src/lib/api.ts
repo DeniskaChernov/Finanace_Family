@@ -153,13 +153,6 @@ export interface Comment {
   user_name: string; body: string; created_at: string;
 }
 
-  push: {
-    getVapidKey: () => get<{ key: string }>('/push/vapid-public-key'),
-    subscribe: (subscription: PushSubscriptionJSON) => post<{ ok: boolean }>('/push/subscribe', { subscription }),
-    unsubscribe: (endpoint: string) => post<{ ok: boolean }>('/push/unsubscribe', { endpoint }),
-  },
-};
-
 interface TxPayload {
   date: string; type: TxType; category: string; amount: number;
   currency: Currency; description: string; receipt_url: string | null;
