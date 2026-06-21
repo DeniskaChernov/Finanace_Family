@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { Btn, Field, Input } from './ui';
+import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Btn, Field } from './ui';
 import { api } from '../../lib/api';
 import type { AppUser } from '../../lib/api';
 
@@ -12,6 +12,7 @@ const USERS = [
 export function LoginScreen({ onLogin }: { onLogin: (u: AppUser, token: string) => void }) {
   const [selected, setSelected] = useState<typeof USERS[0] | null>(null);
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -78,14 +79,27 @@ export function LoginScreen({ onLogin }: { onLogin: (u: AppUser, token: string) 
               Вход как <strong>{selected.name}</strong>
             </p>
             <Field label="Пароль">
-              <Input
-                type="password"
-                placeholder="Введите пароль"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                autoFocus
-              />
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="Введите пароль"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  autoFocus
+                  className="w-full px-4 py-3 pr-12 rounded-xl text-sm font-medium
+                    bg-[var(--input-background)] border border-border
+                    focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                    transition-all placeholder:text-muted-foreground/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </Field>
 
             {error && (
