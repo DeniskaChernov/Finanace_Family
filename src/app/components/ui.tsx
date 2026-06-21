@@ -1,20 +1,12 @@
 import { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
-// Сплошная приподнятая поверхность (без blur — быстро и премиально)
-const surfaceStyle = {
-  background: 'var(--card-solid)',
-  border: '1px solid var(--border)',
-  boxShadow: 'var(--shadow)',
-} as const;
-
 export function Card({ children, className = '', onClick }: {
   children: ReactNode; className?: string; onClick?: () => void;
 }) {
   return (
     <div onClick={onClick}
-      className={`rounded-2xl p-4 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''} ${className}`}
-      style={surfaceStyle}>
+      className={`glass-card rounded-2xl p-4 ${onClick ? 'cursor-pointer press-3d' : ''} ${className}`}>
       {children}
     </div>
   );
@@ -25,8 +17,7 @@ export function StatCard({ label, value, sub, icon, accent, color, onClick }: {
 }) {
   return (
     <div onClick={onClick}
-      className={`rounded-2xl p-4 flex flex-col gap-1 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
-      style={surfaceStyle}>
+      className={`glass-card rounded-2xl p-4 flex flex-col gap-1 ${onClick ? 'cursor-pointer press-3d' : ''}`}>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</span>
         {icon && (

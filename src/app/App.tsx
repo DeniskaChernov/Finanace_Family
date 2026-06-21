@@ -290,7 +290,7 @@ export default function App() {
 
   const renderScreen = () => {
     switch(activeTab) {
-      case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab}/>;
+      case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
       case "journal": return <JournalScreen transactions={transactions} categories={categories} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
       case "savings": return <SavingsScreen transactions={transactions} usdRate={settings.usd_rate}/>;
       case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation}/>;
@@ -302,8 +302,9 @@ export default function App() {
     <div className="bg-background min-h-dvh max-w-md mx-auto relative overflow-hidden">
       {/* Ambient background glow */}
       <div className="fixed inset-0 max-w-md mx-auto pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 -right-16 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: 'var(--primary)' }} />
-        <div className="absolute top-1/2 -left-20 w-56 h-56 rounded-full opacity-[0.05] blur-3xl" style={{ background: '#10b981' }} />
+        <div className="float-orb absolute -top-32 -right-16 w-72 h-72 rounded-full opacity-[0.12] blur-3xl" style={{ background: 'var(--primary)' }} />
+        <div className="float-orb absolute top-1/3 -left-24 w-60 h-60 rounded-full opacity-[0.10] blur-3xl" style={{ background: '#a855f7', animationDelay: '4s' }} />
+        <div className="float-orb absolute bottom-10 right-0 w-52 h-52 rounded-full opacity-[0.06] blur-3xl" style={{ background: '#22d3ee', animationDelay: '8s' }} />
       </div>
       <div className="relative pb-24 pt-2 min-h-dvh overflow-y-auto">{renderScreen()}</div>
       <BottomNav active={activeTab} onChange={t=>{if(t!=="more")setMoreDefaultSection(undefined);setActiveTab(t);}} unreadNotif={unreadNotif} profileName={userProfile.name}/>

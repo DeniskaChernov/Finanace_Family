@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, TrendingUp, TrendingDown, Shield, Repeat, ArrowUpRight, ArrowDownLeft, X, Zap, AlertCircle } from "lucide-react";
 import { Card, StatCard, SectionHeader } from "./ui";
+import { Tilt3D, useCountUp } from "./effects";
 import { TxSheet } from "./Journal";
 import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency } from "../../lib/api";
 
@@ -65,11 +66,12 @@ function AddFab({ onAdd }: { onAdd: (type: "income"|"expense") => void }) {
   );
 }
 
-export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,settings,onSave,onMoreSection,onTabChange }: {
+export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,settings,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
   transactions:Transaction[]; goals:Goal[];
   usdRate:number; userProfile:AppUser; familyMembers:AppUser[]; categories:Category[];
   recurringPayments:RecurringPayment[]; settings:AppSettings;
   onSave:(t:any)=>Promise<void>; onMoreSection:(s:string)=>void; onTabChange:(t:TabType)=>void;
+  darkMode:boolean; onToggleDark:()=>void;
 }) {
   const [addType, setAddType] = useState<"income"|"expense"|null>(null);
   const now = new Date(); const mk = monthKey();
@@ -77,6 +79,7 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
   const income = monthTx.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const expense = monthTx.filter(t=>t.type==="expense").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const balance = income - expense;
+  const balanceAnim = useCountUp(balance);
   const totalSavings = transactions.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0)
     - transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const totalAllocated = goals.reduce((s,g)=>s+g.allocated,0);
@@ -134,45 +137,56 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
             </p>
             <h2 className="text-2xl font-extrabold mt-0.5 tracking-tight">Привет, {userProfile.name} 👋</h2>
           </div>
-          <div className="flex -space-x-2">
-            {familyMembers.slice(0,2).map(m=>(
-              <div key={m.id} className="w-9 h-9 rounded-xl glass border-2 border-background flex items-center justify-center text-xs font-bold text-primary">
-                {m.name[0]}
-              </div>
-            ))}
+          <div className="flex items-center gap-2">
+            <button onClick={onToggleDark}
+              className="w-10 h-10 rounded-xl glass-card flex items-center justify-center text-lg press-3d"
+              aria-label="Сменить тему">
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+            <div className="flex -space-x-2">
+              {familyMembers.slice(0,2).map(m=>(
+                <div key={m.id} className="w-10 h-10 rounded-xl glass-card border-2 border-background flex items-center justify-center text-xs font-bold text-primary">
+                  {m.name[0]}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Hero balance card */}
-      <div className="mx-4 rounded-3xl p-5 text-white relative overflow-hidden"
-        style={{background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%)",boxShadow:"0 16px 48px rgba(99,102,241,0.35)"}}>
-        <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10" style={{background:"white",transform:"translate(30%,-30%)"}}/>
-        <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-10" style={{background:"white",transform:"translate(-30%,30%)"}}/>
-        <p className="text-sm opacity-70 mb-1 relative">Баланс за месяц</p>
-        <p className="text-4xl font-black font-mono relative tracking-tight" style={{fontFamily:"'JetBrains Mono',monospace"}}>
-          {balance>=0?"+":""}{fmtUZS(balance)}
-        </p>
-        <div className="flex gap-6 mt-5 relative">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-              <ArrowDownLeft size={14}/>
-            </div>
-            <div>
-              <p className="text-[10px] opacity-60 leading-none mb-0.5">Доходы</p>
-              <p className="text-sm font-bold font-mono text-emerald-300">+{fmtUZS(income)}</p>
+      {/* Hero balance card — 3D tilt + count-up + Soyuz Grotesk */}
+      <div className="px-4 scene">
+        <Tilt3D className="rounded-[1.75rem]">
+          <div className="rounded-[1.75rem] p-6 text-white relative overflow-hidden shimmer"
+            style={{background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 48%,#a855f7 100%)",boxShadow:"0 24px 60px -12px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.25)"}}>
+            <div className="absolute top-0 right-0 w-52 h-52 rounded-full opacity-15 blur-2xl" style={{background:"white",transform:"translate(35%,-35%)"}}/>
+            <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 blur-2xl" style={{background:"#22d3ee",transform:"translate(-30%,40%)"}}/>
+            <p className="text-xs opacity-75 mb-2 relative uppercase tracking-widest font-semibold">Баланс за месяц</p>
+            <p className="font-display relative leading-none" style={{fontSize:"2.6rem",textShadow:"0 2px 20px rgba(0,0,0,0.25)"}}>
+              {balance>=0?"+":"−"}{fmtUZS(Math.abs(balanceAnim))}
+            </p>
+            <div className="flex gap-3 mt-6 relative">
+              <div className="flex items-center gap-2 flex-1 rounded-2xl px-3 py-2.5" style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(8px)"}}>
+                <div className="w-8 h-8 rounded-xl bg-emerald-400/30 flex items-center justify-center">
+                  <ArrowDownLeft size={15}/>
+                </div>
+                <div>
+                  <p className="text-[10px] opacity-70 leading-none mb-1">Доходы</p>
+                  <p className="text-sm font-bold font-mono text-emerald-200">+{fmtUZS(income)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-1 rounded-2xl px-3 py-2.5" style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(8px)"}}>
+                <div className="w-8 h-8 rounded-xl bg-rose-400/30 flex items-center justify-center">
+                  <ArrowUpRight size={15}/>
+                </div>
+                <div>
+                  <p className="text-[10px] opacity-70 leading-none mb-1">Расходы</p>
+                  <p className="text-sm font-bold font-mono text-rose-200">−{fmtUZS(expense)}</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-              <ArrowUpRight size={14}/>
-            </div>
-            <div>
-              <p className="text-[10px] opacity-60 leading-none mb-0.5">Расходы</p>
-              <p className="text-sm font-bold font-mono text-red-300">−{fmtUZS(expense)}</p>
-            </div>
-          </div>
-        </div>
+        </Tilt3D>
       </div>
 
       {/* Quick stats bento */}

@@ -7,6 +7,8 @@
 :root {
   --font-size: 16px;
   --font-family: 'Inter', system-ui, sans-serif;
+  --font-display: 'Soyuz Grotesk', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --background: #08080C;
   --foreground: #ECECF1;
@@ -147,8 +149,8 @@
 
   html { font-size: var(--font-size); }
 
-  h1 { font-size: 1.75rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.025em; }
-  h2 { font-size: 1.375rem; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; }
+  h1 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 400; line-height: 1.1; letter-spacing: 0.01em; }
+  h2 { font-size: 1.375rem; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
   h3 { font-size: 1.125rem; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
   h4 { font-size: 1rem; font-weight: 600; line-height: 1.5; }
   label { font-size: 0.875rem; font-weight: 500; }
@@ -159,10 +161,32 @@
 /* Стеклянная карточка */
 .glass {
   background: var(--glass);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
   border: 1px solid var(--glass-border);
 }
+/* Премиальное стекло с верхней световой кромкой */
+.glass-card {
+  position: relative;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.glass-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.18), transparent 40%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Display-шрифт (Soyuz Grotesk) */
+.font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.01em; }
 
 /* Текст градиентом бренда */
 .text-gradient {
@@ -171,6 +195,51 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* ============ 3D эффекты и глубина ============ */
+.scene { perspective: 1000px; }
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.press-3d { transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+.press-3d:active { transform: perspective(600px) translateZ(-8px) scale(0.97); }
+
+/* Парящие световые орбы (фон) */
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(12px, -18px) scale(1.08); }
+  66%      { transform: translate(-10px, 10px) scale(0.95); }
+}
+.float-orb { animation: floatOrb 14s ease-in-out infinite; }
+
+/* Появление с глубиной */
+@keyframes rise3d {
+  from { opacity: 0; transform: perspective(800px) translateY(24px) rotateX(8deg); }
+  to   { opacity: 1; transform: perspective(800px) translateY(0) rotateX(0); }
+}
+.animate-rise { animation: rise3d 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Мерцающий блик на hero-карте */
+@keyframes shimmer {
+  0%   { transform: translateX(-120%) rotate(25deg); }
+  100% { transform: translateX(220%) rotate(25deg); }
+}
+.shimmer::after {
+  content: '';
+  position: absolute; top: -50%; left: 0; width: 40%; height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  animation: shimmer 4.5s ease-in-out infinite; animation-delay: 1s;
+  pointer-events: none;
+}
+
+/* Пульс-свечение для акцентов */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(99,102,241,0.35); }
+  50%      { box-shadow: 0 12px 36px rgba(139,92,246,0.55); }
+}
+.glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
 
 /* Плавные появления */
 @keyframes fadeSlideUp {
