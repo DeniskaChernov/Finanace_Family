@@ -136,6 +136,14 @@ export async function migrate() {
     `);
     console.log('✅ Database migrated');
 
+    // Always ensure correct password hashes
+    await client.query(`
+      UPDATE users SET password_hash = '$2a$10$4PH7DEqDO8dsKCUziayagenhssnnCmyFnTaRacGMm3ig1m3oahgG.'
+      WHERE id = 'usr-001';
+      UPDATE users SET password_hash = '$2a$10$HubmM.A9gQNPnYwc9vtn/uKfNJZTJIFfQfPJ9PLfAhAUvGA0jAO46'
+      WHERE id = 'usr-002';
+    `);
+
     // Seed default family + users if not exists
     const { rows: families } = await client.query("SELECT id FROM families WHERE id='fam-001'");
     if (families.length === 0) {
@@ -150,8 +158,8 @@ export async function migrate() {
       await client.query(`
         INSERT INTO users (id, name, password_hash, family_id, role, avatar, color)
         VALUES
-          ('usr-001', 'Денис', '$2b$10$YKqT2QQ1OZ9RkmYsIJa0MeKlBbWyBzKxeL9pNdJcV0lIEDQHl6Iam', 'fam-001', 'owner', 'Д', 'bg-blue-500'),
-          ('usr-002', 'Софья', '$2b$10$Wz2HJpI1AQjcBNxTK4fPBeDQ3p3RPVE5qHSL2.4m8xNuI9HFWVaEi', 'fam-001', 'member', 'С', 'bg-pink-500')
+          ('usr-001', 'Денис', '$2a$10$4PH7DEqDO8dsKCUziayagenhssnnCmyFnTaRacGMm3ig1m3oahgG.', 'fam-001', 'owner', 'Д', 'bg-blue-500'),
+          ('usr-002', 'Софья', '$2a$10$HubmM.A9gQNPnYwc9vtn/uKfNJZTJIFfQfPJ9PLfAhAUvGA0jAO46', 'fam-001', 'member', 'С', 'bg-pink-500')
         ON CONFLICT DO NOTHING;
       `);
 
