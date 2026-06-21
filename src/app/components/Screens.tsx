@@ -56,46 +56,81 @@ export function SavingsScreen({ transactions,usdRate }: { transactions:Transacti
     return {label:`${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`,inc,exp,net:inc-exp,mk};
   });
   const maxBar=Math.max(...months.flatMap(m=>[m.inc,m.exp]),1);
+  const savingsRate = totalIncome>0 ? Math.round(netSavings/totalIncome*100) : 0;
+  const avgMonthlySavings = months.reduce((s,m)=>s+m.net,0)/Math.max(1,months.filter(m=>m.inc>0||m.exp>0).length);
+  const bestMonth = [...months].sort((a,b)=>b.net-a.net)[0];
+
   return (
-    <div className="pb-4">
-      <div className="px-4 pb-4"><h2 className="text-xl font-bold">Накопления</h2><p className="text-xs text-muted-foreground mt-0.5">Рассчитываются из доходов и расходов</p></div>
-      <div className={`mx-4 mb-4 rounded-2xl p-5 text-white ${netSavings>=0?"bg-primary":"bg-red-600"}`}>
+    <div className="pb-4 space-y-4">
+      <div className="px-4"><h2 className="text-xl font-bold">Накопления</h2><p className="text-xs text-muted-foreground mt-0.5">Доходы минус расходы за всё время</p></div>
+
+      {/* Hero */}
+      <div className={`mx-4 rounded-3xl p-5 text-white relative overflow-hidden`}
+        style={{background:netSavings>=0?"linear-gradient(135deg,#6366f1,#8b5cf6)":"linear-gradient(135deg,#ef4444,#dc2626)",boxShadow:"0 16px 48px rgba(99,102,241,0.3)"}}>
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 bg-white" style={{transform:"translate(30%,-30%)"}}/>
         <p className="text-sm opacity-70 mb-1">Накоплено всего</p>
-        <p className="text-3xl font-bold font-mono">{fmtUZS(netSavings)}</p>
-        {netUSD!==0&&<p className="text-xs opacity-60 mt-1">Из них в $: {fmtUSD(netUSD)}</p>}
-        <div className="flex gap-6 mt-4">
-          <div><p className="text-xs opacity-60">Всего доходов</p><p className="text-sm font-bold font-mono text-emerald-300">+{fmtUZS(totalIncome)}</p></div>
-          <div><p className="text-xs opacity-60">Всего расходов</p><p className="text-sm font-bold font-mono text-red-300">−{fmtUZS(totalExpense)}</p></div>
+        <p className="text-3xl font-black font-mono">{netSavings>=0?"+":""}{fmtUZS(netSavings)}</p>
+        {netUSD!==0&&<p className="text-xs opacity-60 mt-1 font-mono">В долларах: {netUSD>=0?"+":""}{fmtUSD(netUSD)}</p>}
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div><p className="text-[10px] opacity-60">Все доходы</p><p className="text-sm font-bold font-mono text-emerald-300">+{fmtUZS(totalIncome)}</p></div>
+          <div><p className="text-[10px] opacity-60">Все расходы</p><p className="text-sm font-bold font-mono text-red-300">−{fmtUZS(totalExpense)}</p></div>
         </div>
       </div>
-      <div className="px-4 mb-4">
-        <Card className="p-4">
-          <p className="text-sm font-bold mb-4">Помесячно</p>
-          <div className="flex items-end gap-1 h-20 mb-2">
-            {months.map((m,i)=>(
-              <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                <div className="w-full flex items-end gap-px" style={{height:"68px"}}>
-                  <div className="flex-1 rounded-t-sm bg-emerald-400" style={{height:`${(m.inc/maxBar)*100}%`,minHeight:m.inc>0?"2px":"0"}}/>
-                  <div className="flex-1 rounded-t-sm bg-red-400" style={{height:`${(m.exp/maxBar)*100}%`,minHeight:m.exp>0?"2px":"0"}}/>
-                </div>
-                <span className="text-[8px] text-muted-foreground">{MONTHS_SHORT[parseInt(m.mk.split("-")[1])-1]}</span>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2 mt-3">
-            {[...months].reverse().slice(0,3).map((m,i)=>(
-              <div key={i} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                <span className="text-xs text-muted-foreground capitalize">{m.label}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-emerald-600 font-mono">+{fmtUZS(m.inc)}</span>
-                  <span className="text-xs text-red-500 font-mono">−{fmtUZS(m.exp)}</span>
-                  <span className={`text-xs font-bold font-mono ${m.net>=0?"text-blue-600":"text-red-500"}`}>{m.net>=0?"+":""}{fmtUZS(m.net)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+
+      {/* Ключевые метрики */}
+      <div className="px-4 grid grid-cols-3 gap-2">
+        <StatCard label="Норма сбережений" value={`${savingsRate}%`} icon={savingsRate>=20?"🌟":"💡"} accent={savingsRate>=20?"#10b981":savingsRate>=10?"#f59e0b":"#ef4444"}/>
+        <StatCard label="В среднем/мес." value={fmtUZS(Math.abs(avgMonthlySavings))} icon="📅" accent={avgMonthlySavings>=0?"#6366f1":"#ef4444"}/>
+        <StatCard label="Лучший месяц" value={bestMonth?.net>=0?"+"+fmtUZS(bestMonth.net):fmtUZS(bestMonth?.net||0)} icon="🏆" accent="#f59e0b"/>
       </div>
+
+      {/* Помесячный график */}
+      <Card className="mx-4 p-4">
+        <SectionHeader title="Последние 6 месяцев"/>
+        <div className="flex items-end gap-1.5 h-24 mb-3">
+          {months.map((m,i)=>(
+            <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+              <div className="w-full flex items-end gap-0.5" style={{height:"80px"}}>
+                <div className="flex-1 rounded-t-md bg-emerald-400 transition-all" style={{height:`${(m.inc/maxBar)*100}%`,minHeight:m.inc>0?"3px":"0"}}/>
+                <div className="flex-1 rounded-t-md bg-red-400 transition-all" style={{height:`${(m.exp/maxBar)*100}%`,minHeight:m.exp>0?"3px":"0"}}/>
+              </div>
+              <span className="text-[8px] text-muted-foreground">{MONTHS_SHORT[parseInt(m.mk.split("-")[1])-1]}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-400"/><span className="text-xs text-muted-foreground">Доходы</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-red-400"/><span className="text-xs text-muted-foreground">Расходы</span></div>
+        </div>
+        <div className="space-y-2 border-t border-border pt-3">
+          {[...months].reverse().map((m,i)=>(
+            <div key={i} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+              <span className="text-xs text-muted-foreground capitalize w-20">{m.label}</span>
+              <div className="flex items-center gap-2 text-right">
+                <span className="text-[10px] text-emerald-600 font-mono w-20 text-right">+{fmtUZS(m.inc)}</span>
+                <span className="text-[10px] text-red-500 font-mono w-20 text-right">−{fmtUZS(m.exp)}</span>
+                <span className={`text-xs font-bold font-mono w-20 text-right ${m.net>=0?"text-primary":"text-red-500"}`}>{m.net>=0?"+":""}{fmtUZS(m.net)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Подсказка по норме сбережений */}
+      <Card className="mx-4 p-4">
+        <p className="text-sm font-bold mb-2">💡 Нормы сбережений</p>
+        <div className="space-y-2">
+          {[{label:"Правило 50/30/20",desc:"20% доходов — в накопления",ok:savingsRate>=20},
+            {label:"Минимальная норма",desc:"10% — базовая финансовая безопасность",ok:savingsRate>=10},
+            {label:"Финансовая независимость",desc:"30%+ — путь к раннему выходу на пенсию",ok:savingsRate>=30}
+          ].map(r=>(
+            <div key={r.label} className="flex items-start gap-2.5 py-1.5 border-b border-border last:border-0">
+              <span className="text-base mt-0.5">{r.ok?"✅":"⭕"}</span>
+              <div><p className="text-xs font-semibold">{r.label}</p><p className="text-[10px] text-muted-foreground">{r.desc}</p></div>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
