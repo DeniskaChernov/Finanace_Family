@@ -3,6 +3,7 @@ import { Home, FileText, PiggyBank, Target, User, ChevronLeft, ChevronRight, Cro
 import { api } from "../lib/api";
 import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency } from "../lib/api";
 import { Toast } from "./components/ui";
+import { InstallPrompt } from "./components/InstallPrompt";
 import { LoginScreen } from "./components/Login";
 import { DashboardScreen } from "./components/Dashboard";
 import { JournalScreen } from "./components/Journal";
@@ -306,9 +307,11 @@ export default function App() {
         <div className="float-orb absolute top-1/3 -left-24 w-60 h-60 rounded-full opacity-[0.10] blur-3xl" style={{ background: '#a855f7', animationDelay: '4s' }} />
         <div className="float-orb absolute bottom-10 right-0 w-52 h-52 rounded-full opacity-[0.06] blur-3xl" style={{ background: '#22d3ee', animationDelay: '8s' }} />
       </div>
-      <div className="relative pb-24 pt-2 min-h-dvh overflow-y-auto">{renderScreen()}</div>
+      <div className="relative pb-24 min-h-dvh overflow-y-auto"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>{renderScreen()}</div>
       <BottomNav active={activeTab} onChange={t=>{if(t!=="more")setMoreDefaultSection(undefined);setActiveTab(t);}} unreadNotif={unreadNotif} profileName={userProfile.name}/>
       {toast && <Toast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+      <InstallPrompt/>
     </div>
   );
 }

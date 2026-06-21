@@ -59,6 +59,17 @@ app.get('*', (req, res) => {
 async function start() {
   try {
     await migrate();
+    // Диагностика постоянства данных: сколько записей уже в БД на старте
+    try {
+      const { default: pool } = await import('./db.js');
+      const t = await pool.query('SELECT COUNT(*)::int AS n FROM transactions');
+      const g = await pool.query('SELECT COUNT(*)::int AS n FROM goals');
+      console.log(`📊 В базе на старте: транзакций=${t.rows[0].n}, целей=${g.rows[0].n}`);
+      console.log(t.rows[0].n > 0
+        ? '✅ Данные на месте — БД постоянная.'
+        : 'ℹ️  Транзакций нет (новая БД или данные ещё не добавлялись).');
+    } catch (e) { console.error('Диагностика БД не удалась:', e.message); }
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
