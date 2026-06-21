@@ -4,7 +4,7 @@ import {
   TrendingUp, TrendingDown, Edit2, Trash2, MessageCircle, Camera,
   ArrowDownLeft, ArrowUpRight,
 } from "lucide-react";
-import { Field, Input, Select } from "./ui";
+import { Field, Input, Select, ConfirmDialog } from "./ui";
 import { api } from "../../lib/api";
 import type { Transaction, Category, Comment, Currency, TxType } from "../../lib/api";
 
@@ -36,6 +36,7 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
   const [commentText, setCommentText] = useState("");
   const [loadingC, setLoadingC] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const loadComments = async () => {
     setLoadingC(true);
@@ -75,9 +76,10 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
           </span>
           <button onClick={handleExpand} className="text-muted-foreground hover:text-primary p-1"><MessageCircle size={13}/></button>
           {t.user_id===currentUserId&&<button onClick={onEdit} className="text-muted-foreground hover:text-primary p-1"><Edit2 size={13}/></button>}
-          {t.user_id===currentUserId&&<button onClick={onDelete} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>}
+          {t.user_id===currentUserId&&<button onClick={()=>setConfirmDelete(true)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>}
         </div>
       </div>
+      {confirmDelete&&<ConfirmDialog title="Удалить операцию?" message={`${t.category} · ${fmtMoney(t.amount,t.currency??"UZS")}`} onConfirm={()=>{setConfirmDelete(false);onDelete();}} onCancel={()=>setConfirmDelete(false)}/>}
       {expanded&&t.receipt_url&&(
         <div className="px-4 pb-3">
           <img src={t.receipt_url} alt="чек" className="w-full rounded-xl max-h-48 object-contain border border-border"/>

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import * as XLSX from "xlsx";
-import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle } from "./ui";
+import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle, ConfirmDialog } from "./ui";
 import { usePush } from "../../lib/usePush";
 import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority } from "../../lib/api";
 
@@ -101,14 +101,18 @@ export function SavingsScreen({ transactions,usdRate }: { transactions:Transacti
 }
 
 // ── Goals ─────────────────────────────────────────────────────────────
-export function GoalsScreen({ goals,transactions,onAdd,onDelete }: {
+export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocation }: {
   goals:Goal[]; transactions:Transaction[];
   onAdd:(g:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
+  onUpdateAllocation?:(id:string,amt:number)=>Promise<void>;
 }) {
   const [showAdd,setShowAdd]=useState(false);
   const [name,setName]=useState(""); const [target,setTarget]=useState("");
   const [deadline,setDeadline]=useState(""); const [note,setNote]=useState("");
   const [priority,setPriority]=useState<Priority>("medium"); const [saving,setSaving]=useState(false);
+  const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
+  const [fundGoalId,setFundGoalId]=useState<string|null>(null);
+  const [fundAmount,setFundAmount]=useState("");
   const now=new Date();
   const months3=Array.from({length:3},(_,i)=>monthKey(new Date(now.getFullYear(),now.getMonth()-2+i,1)));
   const avgMonthlySavings=months3.reduce((s,mk)=>{
@@ -156,7 +160,7 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete }: {
                     <h3 className="font-bold truncate">{g.name}</h3>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${pc.bg} ${pc.color}`}>{pc.label}</span>
                   </div>
-                  <button onClick={()=>onDelete(g.id)} className="text-muted-foreground hover:text-red-500 ml-2 p-1"><Trash2 size={14}/></button>
+                  <button onClick={()=>setConfirmDeleteId(g.id)} className="text-muted-foreground hover:text-red-500 ml-2 p-1"><Trash2 size={14}/></button>
                 </div>
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
@@ -185,11 +189,37 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete }: {
                   </div>
                 )}
                 {g.note&&<p className="text-xs text-muted-foreground italic">📝 {g.note}</p>}
+                {!done&&onUpdateAllocation&&(
+                  <button onClick={()=>{setFundGoalId(g.id);setFundAmount(String(g.allocated||""));}}
+                    className="mt-2 w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95"
+                    style={{background:"var(--primary)"}}>
+                    💎 Пополнить цель
+                  </button>
+                )}
               </Card>
             );
           })}
         </div>
       )}
+      {confirmDeleteId&&<ConfirmDialog title="Удалить цель?" message="Все накопления по этой цели будут удалены" onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
+      {fundGoalId&&onUpdateAllocation&&(()=>{const g=goals.find(x=>x.id===fundGoalId)!; return g?(
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={()=>setFundGoalId(null)}/>
+          <div className="relative rounded-t-3xl p-5 pb-8" style={{background:"var(--card)",boxShadow:"0 -8px 40px rgba(0,0,0,0.3)"}}>
+            <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4"/>
+            <h3 className="text-base font-bold mb-1">💎 {g.name}</h3>
+            <p className="text-xs text-muted-foreground mb-4">Цель: {fmtUZS(g.target_amount)}</p>
+            <Field label="Сумма накоплений">
+              <Input type="number" value={fundAmount} onChange={e=>setFundAmount(e.target.value)} placeholder="0" inputMode="numeric" autoFocus/>
+            </Field>
+            <div className="flex gap-2 mt-4">
+              <button onClick={()=>setFundGoalId(null)} className="flex-1 py-3 rounded-2xl font-semibold text-sm" style={{background:"var(--muted)"}}>Отмена</button>
+              <button onClick={async()=>{await onUpdateAllocation(g.id,parseFloat(fundAmount)||0);setFundGoalId(null);}}
+                className="flex-1 py-3 rounded-2xl font-bold text-sm text-white" style={{background:"var(--primary)"}}>Сохранить</button>
+            </div>
+          </div>
+        </div>
+      ):null;})()}
       {showAdd&&(
         <Sheet title="Новая цель" onClose={()=>setShowAdd(false)}>
           <div className="space-y-4">
@@ -304,6 +334,7 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete }
 }) {
   const [showAdd,setShowAdd]=useState(false);
   const [cat,setCat]=useState(""); const [limit,setLimit]=useState(""); const [saving,setSaving]=useState(false);
+  const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
   const mk=monthKey();
   const expCats=categories.filter(c=>c.type==="expense");
   const getSpent=(category:string)=>transactions.filter(t=>t.type==="expense"&&t.category===category&&t.date.startsWith(mk)).reduce((s,t)=>s+t.amount,0);
@@ -328,7 +359,7 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete }
                   <div><p className="text-sm font-bold">{b.category}</p><p className="text-xs text-muted-foreground">Лимит: {fmtUZS(b.month_limit)}</p></div>
                   <div className="flex items-center gap-2">
                     {over&&<span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1"><AlertTriangle size={9}/>Превышен</span>}
-                    <button onClick={()=>onDelete(b.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>
+                    <button onClick={()=>setConfirmDeleteId(b.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>
                   </div>
                 </div>
                 <div className="mb-3">
@@ -348,6 +379,7 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete }
           })}
         </div>
       )}
+      {confirmDeleteId&&<ConfirmDialog title="Удалить бюджет?" onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
       {showAdd&&(
         <Sheet title="Новый бюджет" onClose={()=>setShowAdd(false)}>
           <div className="space-y-4">
@@ -375,6 +407,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
   const [name,setName]=useState(""); const [cat,setCat]=useState(""); const [amount,setAmount]=useState("");
   const [freq,setFreq]=useState<Frequency>("monthly"); const [nextDate,setNextDate]=useState(new Date().toISOString().split("T")[0]);
   const [saving,setSaving]=useState(false);
+  const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
   const sorted=[...payments].filter(p=>p.active).sort((a,b)=>a.next_date.localeCompare(b.next_date));
   const totalMonthly=payments.filter(p=>p.active).reduce((s,p)=>{
     if(p.frequency==="monthly") return s+p.amount;
@@ -412,7 +445,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
                       </span>
                       <div className="flex gap-1">
                         <button onClick={()=>onMarkPaid(p.id)} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">✓ Оплачено</button>
-                        <button onClick={()=>onDelete(p.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>
+                        <button onClick={()=>setConfirmDeleteId(p.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>
                       </div>
                     </div>
                   </div>
@@ -422,6 +455,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
           })}
         </div>
       )}
+      {confirmDeleteId&&<ConfirmDialog title="Удалить платёж?" onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
       {showAdd&&(
         <Sheet title="Новый регулярный платёж" onClose={()=>setShowAdd(false)}>
           <div className="space-y-4">

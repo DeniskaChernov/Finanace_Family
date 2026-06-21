@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Home, FileText, PiggyBank, Target, User, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { api } from "../lib/api";
 import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency } from "../lib/api";
+import { Toast } from "./components/ui";
 import { LoginScreen } from "./components/Login";
 import { DashboardScreen } from "./components/Dashboard";
 import { JournalScreen } from "./components/Journal";
@@ -166,6 +167,8 @@ export default function App() {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [darkMode, setDarkMode] = useState(()=>localStorage.getItem("theme")==="dark");
+  const [toast, setToast] = useState<{msg:string;type:'success'|'error'|'warning'|'info'}|null>(null);
+  const showToast = (msg:string, type:'success'|'error'|'warning'|'info'='info') => setToast({msg,type});
 
   useEffect(()=>{ document.documentElement.classList.toggle("dark",darkMode); localStorage.setItem("theme",darkMode?"dark":"light"); },[darkMode]);
 
@@ -195,11 +198,30 @@ export default function App() {
   };
 
   const saveTransaction = async (t:any, id?:string) => {
-    if(id) { const u=await api.transactions.update(id,t); setTransactions(prev=>prev.map(tx=>tx.id===id?u:tx)); }
-    else { const c=await api.transactions.create({...t,receipt_url:t.receipt_url??null}); setTransactions(prev=>[c,...prev]); await notify(`${userProfile?.name} добавил ${t.type==="income"?"доход":"расход"}`,`${t.category}: ${fmtUZS(t.amount)}`,"transaction"); }
+    if(id) {
+      const u=await api.transactions.update(id,t);
+      setTransactions(prev=>prev.map(tx=>tx.id===id?u:tx));
+      showToast('Операция обновлена', 'success');
+    } else {
+      const c=await api.transactions.create({...t,receipt_url:t.receipt_url??null});
+      setTransactions(prev=>[c,...prev]);
+      showToast(`${t.type==="income"?"💰 Доход":"💸 Расход"} ${fmtUZS(t.amount)} добавлен`, t.type==="income"?'success':'info');
+      await notify(`${userProfile?.name} добавил ${t.type==="income"?"доход":"расход"}`,`${t.category}: ${fmtUZS(t.amount)}`,"transaction");
+      // Проверка бюджетных лимитов при расходе
+      if(t.type==="expense") {
+        const mk = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+        const budget = budgets.find(b=>b.category===t.category&&b.month===mk);
+        if(budget) {
+          const spent = transactions.filter(tx=>tx.type==="expense"&&tx.category===t.category&&tx.date.startsWith(mk)).reduce((s,tx)=>s+tx.amount,0) + t.amount;
+          const pct = Math.round((spent/budget.month_limit)*100);
+          if(spent>budget.month_limit) showToast(`⚠️ Бюджет "${t.category}" превышен! ${fmtUZS(spent)} из ${fmtUZS(budget.month_limit)}`,'warning');
+          else if(pct>=80) showToast(`⚠️ Бюджет "${t.category}" использован на ${pct}%`,'warning');
+        }
+      }
+    }
   };
 
-  const deleteTransaction = async (id:string) => { await api.transactions.delete(id); setTransactions(prev=>prev.filter(t=>t.id!==id)); };
+  const deleteTransaction = async (id:string) => { await api.transactions.delete(id); setTransactions(prev=>prev.filter(t=>t.id!==id)); showToast('Операция удалена', 'info'); };
   const addCategory = async (name:string, type:TxType) => { const c=await api.categories.create(name,type); setCategories(prev=>[...prev,c]); };
   const deleteCategory = async (id:string) => { await api.categories.delete(id); setCategories(prev=>prev.filter(c=>c.id!==id)); };
 
@@ -271,7 +293,7 @@ export default function App() {
       case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab}/>;
       case "journal": return <JournalScreen transactions={transactions} categories={categories} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
       case "savings": return <SavingsScreen transactions={transactions} usdRate={settings.usd_rate}/>;
-      case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onDelete={deleteGoal}/>;
+      case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation}/>;
       case "more": return <MoreScreen {...moreProps}/>;
     }
   };
@@ -285,6 +307,7 @@ export default function App() {
       </div>
       <div className="relative pb-24 pt-2 min-h-dvh overflow-y-auto">{renderScreen()}</div>
       <BottomNav active={activeTab} onChange={t=>{if(t!=="more")setMoreDefaultSection(undefined);setActiveTab(t);}} unreadNotif={unreadNotif} profileName={userProfile.name}/>
+      {toast && <Toast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
     </div>
   );
 }

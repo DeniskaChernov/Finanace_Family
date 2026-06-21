@@ -1,4 +1,5 @@
-import { ReactNode, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
+import { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, useEffect, useState } from 'react';
+import { X, AlertTriangle } from 'lucide-react';
 
 export function Card({ children, className = '', onClick }: {
   children: ReactNode; className?: string; onClick?: () => void;
@@ -12,11 +13,13 @@ export function Card({ children, className = '', onClick }: {
   );
 }
 
-export function StatCard({ label, value, sub, icon, accent }: {
-  label: string; value: string; sub?: string; icon?: string; accent?: string;
+export function StatCard({ label, value, sub, icon, accent, color, onClick }: {
+  label: string; value: string; sub?: string; icon?: string; accent?: string; color?: string; onClick?: () => void;
 }) {
   return (
-    <div className="glass rounded-2xl p-4 flex flex-col gap-1" style={{ boxShadow: 'var(--shadow)' }}>
+    <div onClick={onClick}
+      className={`glass rounded-2xl p-4 flex flex-col gap-1 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
+      style={{ boxShadow: 'var(--shadow)' }}>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
         {icon && (
@@ -26,8 +29,60 @@ export function StatCard({ label, value, sub, icon, accent }: {
           </span>
         )}
       </div>
-      <span className="text-xl font-bold tracking-tight" style={{ color: accent || 'inherit' }}>{value}</span>
+      <span className="text-xl font-bold tracking-tight" style={{ color: color || accent || 'inherit' }}>{value}</span>
       {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+    </div>
+  );
+}
+
+export function ConfirmDialog({ title, message, confirmLabel = 'Удалить', onConfirm, onCancel, danger = true }: {
+  title: string; message?: string; confirmLabel?: string;
+  onConfirm: () => void; onCancel: () => void; danger?: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel}/>
+      <div className="relative w-full max-w-md rounded-t-3xl p-6 animate-in"
+        style={{background:'var(--card)',boxShadow:'0 -8px 40px rgba(0,0,0,0.3)'}}>
+        <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4"/>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{background:danger?'#fef2f2':'var(--accent)'}}>
+            <AlertTriangle size={18} style={{color:danger?'#ef4444':'var(--primary)'}}/>
+          </div>
+          <h3 className="text-base font-bold">{title}</h3>
+        </div>
+        {message && <p className="text-sm text-muted-foreground mb-5 ml-[52px]">{message}</p>}
+        <div className="flex gap-3 mt-4">
+          <button onClick={onCancel} className="flex-1 py-3.5 rounded-2xl font-semibold text-sm"
+            style={{background:'var(--muted)',color:'var(--foreground)'}}>Отмена</button>
+          <button onClick={onConfirm} className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white"
+            style={{background:danger?'#ef4444':'var(--primary)'}}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Toast({ message, type = 'info', onDone }: {
+  message: string; type?: 'success' | 'error' | 'warning' | 'info'; onDone: () => void;
+}) {
+  useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
+  const colors = { success:'#10b981', error:'#ef4444', warning:'#f59e0b', info:'var(--primary)' };
+  const icons = { success:'✓', error:'✕', warning:'⚠', info:'ℹ' };
+  return (
+    <div className="fixed top-4 left-4 right-4 max-w-md mx-auto z-[200] animate-in"
+      style={{filter:'drop-shadow(0 8px 24px rgba(0,0,0,0.2))'}}>
+      <div className="rounded-2xl px-4 py-3.5 flex items-center gap-3 text-white"
+        style={{background:colors[type]}}>
+        <span className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-sm font-bold flex-shrink-0">
+          {icons[type]}
+        </span>
+        <p className="text-sm font-semibold flex-1">{message}</p>
+        <button onClick={onDone} className="opacity-70 hover:opacity-100"><X size={16}/></button>
+      </div>
     </div>
   );
 }
