@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Plus, TrendingUp, TrendingDown, Shield, Repeat, ArrowUpRight, ArrowDownLeft, X } from "lucide-react";
-import { Card, StatCard, SectionHeader, Sheet } from "./ui";
+import { Plus, TrendingUp, TrendingDown, Shield, Repeat, ArrowUpRight, ArrowDownLeft, X, Zap, AlertCircle } from "lucide-react";
+import { Card, StatCard, SectionHeader } from "./ui";
 import { TxSheet } from "./Journal";
 import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency } from "../../lib/api";
 
@@ -101,8 +101,27 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
   },0)/Math.max(1,months6.filter(mk2=>transactions.some(t=>t.date.startsWith(mk2))).length);
   const efMonths = avgExpense>0?totalSavings/avgExpense:0;
 
-  // Budget progress this month
-  // (just show overview inline)
+  // Трендовый анализ: сравнение с прошлым месяцем
+  const prevMk = monthKey(new Date(now.getFullYear(),now.getMonth()-1,1));
+  const prevTx = transactions.filter(t=>t.date.startsWith(prevMk));
+  const prevExpense = prevTx.filter(t=>t.type==="expense").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
+  const prevIncome = prevTx.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
+  const expTrend = prevExpense > 0 ? ((expense - prevExpense) / prevExpense * 100) : 0;
+  const incTrend = prevIncome > 0 ? ((income - prevIncome) / prevIncome * 100) : 0;
+
+  // Топ-категория расходов за месяц
+  const topCat = Object.entries(expMap).sort((a,b)=>b[1]-a[1])[0];
+
+  // Умные инсайты
+  const insights: {icon:string; text:string; color:string}[] = [];
+  if(expTrend > 20) insights.push({icon:"📈", text:`Расходы выросли на ${Math.round(expTrend)}% по сравнению с прошлым месяцем`, color:"#ef4444"});
+  if(expTrend < -10) insights.push({icon:"🎉", text:`Отлично! Расходы снизились на ${Math.round(Math.abs(expTrend))}%`, color:"#10b981"});
+  if(incTrend > 10) insights.push({icon:"💰", text:`Доходы выросли на ${Math.round(incTrend)}%`, color:"#10b981"});
+  if(topCat && topCat[1] > income * 0.4) insights.push({icon:"⚠️", text:`«${topCat[0]}» занимает ${Math.round(topCat[1]/Math.max(income,1)*100)}% доходов`, color:"#f59e0b"});
+  if(efMonths < 3 && totalSavings > 0) insights.push({icon:"🛡", text:`Резервный фонд: ${efMonths.toFixed(1)} мес. Рекомендуется 3–6`, color:"#f59e0b"});
+  if(balance > 0 && income > 0) insights.push({icon:"✨", text:`Сбережения за месяц: ${Math.round(balance/income*100)}% дохода`, color:"#6366f1"});
+  const upcomingUrgent = [...recurringPayments].filter(p=>p.active&&Math.ceil((new Date(p.next_date).getTime()-Date.now())/86400000)<=3);
+  if(upcomingUrgent.length > 0) insights.push({icon:"⏰", text:`${upcomingUrgent.length} платеж${upcomingUrgent.length>1?"а":""}  в ближайшие 3 дня`, color:"#ef4444"});
 
   return (
     <div className="space-y-4 pb-4">
@@ -162,6 +181,54 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
         <StatCard label="Целей" value={`${completedGoals}/${goals.length}`} icon="🎯" onClick={()=>onTabChange("goals")}/>
         <StatCard label="Резерв" value={`${efMonths.toFixed(1)} мес`} icon="🛡" accent={efMonths>=6?"#10b981":efMonths>=3?"#f59e0b":"#ef4444"}/>
       </div>
+
+      {/* Тренды */}
+      {(expTrend !== 0 || incTrend !== 0) && prevExpense > 0 && (
+        <div className="px-4 grid grid-cols-2 gap-2">
+          <div className="glass rounded-2xl px-3 py-3 flex items-center gap-2" style={{boxShadow:"var(--shadow)"}}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${incTrend>=0?"bg-emerald-50":"bg-red-50"}`}>
+              {incTrend>=0?"📈":"📉"}
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground font-medium">Доходы</p>
+              <p className={`text-sm font-bold ${incTrend>=0?"text-emerald-600":"text-red-500"}`}>
+                {incTrend>=0?"+":""}{Math.round(incTrend)}% к пред. мес.
+              </p>
+            </div>
+          </div>
+          <div className="glass rounded-2xl px-3 py-3 flex items-center gap-2" style={{boxShadow:"var(--shadow)"}}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${expTrend<=0?"bg-emerald-50":"bg-red-50"}`}>
+              {expTrend<=0?"🎉":"⚠️"}
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground font-medium">Расходы</p>
+              <p className={`text-sm font-bold ${expTrend<=0?"text-emerald-600":"text-red-500"}`}>
+                {expTrend>=0?"+":""}{Math.round(expTrend)}% к пред. мес.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Умные инсайты */}
+      {insights.length > 0 && (
+        <Card className="mx-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Zap size={13} className="text-primary"/>
+            </div>
+            <p className="text-sm font-bold">Инсайты</p>
+          </div>
+          <div className="space-y-2">
+            {insights.slice(0,3).map((ins,i)=>(
+              <div key={i} className="flex items-start gap-2.5 py-2 border-b border-border last:border-0">
+                <span className="text-base flex-shrink-0 mt-0.5">{ins.icon}</span>
+                <p className="text-xs text-muted-foreground leading-relaxed">{ins.text}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Upcoming payments */}
       {upcoming.length > 0 && (

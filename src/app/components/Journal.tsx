@@ -127,6 +127,13 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
   const [saving,setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const cats = categories.filter(c=>c.type===type);
+  const CAT_EMOJI: Record<string,string> = {
+    "Зарплата Денис":"💼","Зарплата Софья":"💼","Подработка":"🔧","Прочее":"💫",
+    "Продукты":"🛒","Кафе и рестораны":"🍽","Транспорт":"🚗","Коммунальные":"🏠",
+    "Одежда":"👕","Здоровье":"💊","Развлечения":"🎮","Интернет":"📡",
+    "Такси":"🚕","Кафе":"☕",
+  };
+  const catEmoji = (name:string) => CAT_EMOJI[name] || (type==="income" ? "💰" : "💸");
   const amtNum = parseFloat(amount)||0;
   const isIncome = type==="income";
   const accentColor = isIncome ? "#10b981" : "#ef4444";
@@ -207,15 +214,22 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
             )}
           </div>
 
-          {/* Категория */}
-          <Field label="Категория">
-            <select value={category} onChange={e=>setCategory(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold appearance-none outline-none transition-all"
-              style={{background:"var(--input-background)",border:`1.5px solid ${category?"var(--primary)":"var(--border)"}`}}>
-              <option value="">Выберите категорию</option>
-              {cats.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
-          </Field>
+          {/* Категория — grid кнопок */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{color:"var(--muted-foreground)"}}>Категория</p>
+            <div className="grid grid-cols-3 gap-2">
+              {cats.map(c=>(
+                <button key={c.id} onClick={()=>setCategory(c.name)}
+                  className="flex flex-col items-center gap-1 py-2.5 rounded-2xl text-xs font-semibold transition-all active:scale-95"
+                  style={category===c.name
+                    ? {background:accentColor,color:"#fff",boxShadow:`0 4px 12px ${accentColor}40`}
+                    : {background:"var(--input-background)",color:"var(--foreground)",border:"1.5px solid var(--border)"}}>
+                  <span className="text-lg leading-none">{catEmoji(c.name)}</span>
+                  <span className="truncate w-full text-center px-1 text-[10px]">{c.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Дата и комментарий */}
           <div className="grid grid-cols-2 gap-3">
