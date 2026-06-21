@@ -35,13 +35,24 @@ function BottomNav({ active,onChange,unreadNotif,profileName }: { active:TabType
     {id:"more",label:profileName.split(" ")[0],icon:<User size={21}/>},
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-card border-t border-border z-30" style={{paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-      <div className="flex">
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>onChange(t.id)} className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 transition-colors relative ${active===t.id?"text-primary":"text-muted-foreground"}`}>
-            {active===t.id&&<div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"/>}
-            <div className="relative">{t.icon}{t.id==="more"&&unreadNotif>0&&<span className="absolute -top-1 -right-2 bg-red-500 text-white text-[8px] font-bold px-1 py-px rounded-full">{unreadNotif}</span>}</div>
-            <span className="text-[9px] font-bold">{t.label}</span>
+    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-30 px-3"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', paddingTop: '8px' }}>
+      <div className="glass rounded-2xl flex shadow-lg" style={{ boxShadow: 'var(--shadow-lg)', border: '1px solid var(--glass-border)' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => onChange(t.id)}
+            className={`flex-1 flex flex-col items-center py-3 gap-1 transition-all relative rounded-2xl ${active === t.id ? 'text-primary' : 'text-muted-foreground'}`}>
+            {active === t.id && (
+              <div className="absolute inset-1 rounded-xl opacity-10 bg-primary" />
+            )}
+            <div className="relative z-10">
+              {t.icon}
+              {t.id === 'more' && unreadNotif > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[8px] font-bold px-1 py-px rounded-full min-w-[14px] text-center">
+                  {unreadNotif}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] font-bold z-10">{t.label}</span>
           </button>
         ))}
       </div>
@@ -235,10 +246,10 @@ export default function App() {
   const handleMoreSection = (s:string) => { setMoreDefaultSection(s); setActiveTab("more"); };
 
   if(loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-dvh bg-background flex items-center justify-center">
       <div className="text-center">
-        <div className="w-14 h-14 rounded-2xl bg-primary mx-auto mb-3 flex items-center justify-center"><PiggyBank className="text-white" size={28}/></div>
-        <p className="text-muted-foreground text-sm">Загрузка...</p>
+        <div className="w-16 h-16 rounded-3xl bg-primary mx-auto mb-4 flex items-center justify-center text-3xl shadow-xl shadow-primary/30 animate-pulse">💰</div>
+        <p className="text-muted-foreground text-sm font-medium">Загрузка...</p>
       </div>
     </div>
   );
@@ -266,8 +277,13 @@ export default function App() {
   };
 
   return (
-    <div className="bg-background min-h-screen max-w-md mx-auto relative">
-      <div className="pb-20 pt-3 min-h-dvh overflow-y-auto">{renderScreen()}</div>
+    <div className="bg-background min-h-dvh max-w-md mx-auto relative overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="fixed inset-0 max-w-md mx-auto pointer-events-none overflow-hidden">
+        <div className="absolute -top-32 -right-16 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: 'var(--primary)' }} />
+        <div className="absolute top-1/2 -left-20 w-56 h-56 rounded-full opacity-[0.05] blur-3xl" style={{ background: '#10b981' }} />
+      </div>
+      <div className="relative pb-24 pt-2 min-h-dvh overflow-y-auto">{renderScreen()}</div>
       <BottomNav active={activeTab} onChange={t=>{if(t!=="more")setMoreDefaultSection(undefined);setActiveTab(t);}} unreadNotif={unreadNotif} profileName={userProfile.name}/>
     </div>
   );

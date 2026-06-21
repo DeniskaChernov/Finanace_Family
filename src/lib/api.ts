@@ -95,6 +95,14 @@ export const api = {
     create: (entity_id: string, body: string) =>
       post<Comment>('/comments', { entity_id, body }),
   },
+
+  push: {
+    getVapidKey: () => get<{ key: string }>('/push/vapid-public-key'),
+    subscribe: (subscription: PushSubscriptionJSON) =>
+      post<{ ok: boolean }>('/push/subscribe', { subscription }),
+    unsubscribe: (endpoint: string) =>
+      post<{ ok: boolean }>('/push/unsubscribe', { endpoint }),
+  },
 };
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -144,6 +152,13 @@ export interface Comment {
   id: string; family_id: string; entity_type: string; entity_id: string;
   user_name: string; body: string; created_at: string;
 }
+
+  push: {
+    getVapidKey: () => get<{ key: string }>('/push/vapid-public-key'),
+    subscribe: (subscription: PushSubscriptionJSON) => post<{ ok: boolean }>('/push/subscribe', { subscription }),
+    unsubscribe: (endpoint: string) => post<{ ok: boolean }>('/push/unsubscribe', { endpoint }),
+  },
+};
 
 interface TxPayload {
   date: string; type: TxType; category: string; amount: number;

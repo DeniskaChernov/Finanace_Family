@@ -16,6 +16,7 @@ import recurringRouter from './routes/recurring.js';
 import settingsRouter from './routes/settings.js';
 import notificationsRouter from './routes/notifications.js';
 import commentsRouter from './routes/comments.js';
+import pushRouter from './routes/push.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/recurring', authMiddleware, recurringRouter);
 app.use('/api/settings', authMiddleware, settingsRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
 app.use('/api/comments', authMiddleware, commentsRouter);
+app.use('/api/push', authMiddleware, pushRouter);
 
 // Serve React app in production
 const distPath = join(__dirname, '../dist');

@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import * as XLSX from "xlsx";
-import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn } from "./ui";
+import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle } from "./ui";
+import { usePush } from "../../lib/usePush";
 import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
@@ -600,29 +601,55 @@ export function SettingsScreen({ settings,onUpdate,darkMode,onToggleDark }: {
   const [rate,setRate]=useState(String(settings.usd_rate));
   const [quickStr,setQuickStr]=useState(settings.quick_actions||"Продукты,Такси,Кафе,Интернет");
   const [saving,setSaving]=useState(false); const [saved,setSaved]=useState(false);
+  const push = usePush();
+
   return (
     <div className="pb-4">
       <div className="px-4 pb-4"><h2 className="text-xl font-bold">Настройки</h2></div>
-      <div className="px-4 space-y-4">
+      <div className="px-4 space-y-3">
+
+        <Card className="p-4 flex flex-col gap-4">
+          <Toggle checked={darkMode} onChange={onToggleDark} label={darkMode ? "🌙 Тёмная тема" : "☀️ Светлая тема"} />
+        </Card>
+
         <Card className="p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">{darkMode?<Moon size={18}/>:<Sun size={18}/>}</div><div><p className="text-sm font-bold">Тема оформления</p><p className="text-xs text-muted-foreground">{darkMode?"Тёмная":"Светлая"}</p></div></div>
-            <button onClick={onToggleDark} className={`w-12 h-6 rounded-full transition-colors relative ${darkMode?"bg-primary":"bg-muted"}`}>
-              <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-all ${darkMode?"right-0.5":"left-0.5"}`}/>
-            </button>
+            <div>
+              <p className="text-sm font-bold">🔔 Push-уведомления</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {push.status === 'granted' ? 'Включены' : push.status === 'denied' ? 'Заблокированы в браузере' : push.status === 'unsupported' ? 'Не поддерживается' : 'Выключены'}
+              </p>
+            </div>
+            {push.status !== 'unsupported' && push.status !== 'denied' && (
+              <Toggle
+                checked={push.status === 'granted'}
+                onChange={v => v ? push.subscribe() : push.unsubscribe()}
+              />
+            )}
           </div>
+          {push.status === 'denied' && (
+            <p className="text-xs text-muted-foreground mt-2 bg-muted rounded-lg px-3 py-2">
+              Разрешите уведомления в настройках браузера, затем перезагрузите страницу
+            </p>
+          )}
         </Card>
+
         <Card className="p-4">
           <p className="text-sm font-bold mb-3">Быстрые операции</p>
-          <Field label="Категории (через запятую)"><Input value={quickStr} onChange={e=>setQuickStr(e.target.value)} placeholder="Продукты,Такси,Кафе,Интернет"/></Field>
-          <p className="text-xs text-muted-foreground mt-1">До 4 кнопок на главном экране</p>
+          <Field label="Категории (через запятую)">
+            <Input value={quickStr} onChange={e=>setQuickStr(e.target.value)} placeholder="Продукты,Такси,Кафе,Интернет"/>
+          </Field>
+          <p className="text-xs text-muted-foreground mt-1.5">До 4 кнопок на главном экране</p>
         </Card>
+
         <Card className="p-4">
           <p className="text-sm font-bold mb-3">Курс валют</p>
           <Field label="1 USD = ? сум">
             <div className="flex gap-2">
-              <Input type="number" value={rate} onChange={e=>setRate(e.target.value)} className="font-mono" inputMode="decimal"/>
-              <button onClick={async()=>{setSaving(true);await onUpdate({usd_rate:parseFloat(rate)||12700,quick_actions:quickStr});setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2000);}} disabled={saving} className={`px-5 py-3 rounded-xl font-bold text-sm flex-shrink-0 ${saved?"bg-emerald-500 text-white":"bg-primary text-white"}`}>{saving?"...":saved?"✓":"Сохранить"}</button>
+              <Input type="number" value={rate} onChange={e=>setRate(e.target.value)} className="font-mono flex-1" inputMode="decimal"/>
+              <Btn onClick={async()=>{setSaving(true);await onUpdate({usd_rate:parseFloat(rate)||12700,quick_actions:quickStr});setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2000);}} disabled={saving} variant={saved ? 'secondary' : 'primary'} className="flex-shrink-0">
+                {saving ? '...' : saved ? '✓ Сохранено' : 'Сохранить'}
+              </Btn>
             </div>
           </Field>
         </Card>

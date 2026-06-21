@@ -123,6 +123,16 @@ export async function migrate() {
         body TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        family_id TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        subscription JSONB NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, endpoint)
+      );
     `);
     console.log('✅ Database migrated');
 

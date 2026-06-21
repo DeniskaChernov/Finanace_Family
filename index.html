@@ -1,22 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Семейный бюджет</title>
+    <meta name="description" content="Семейное финансовое приложение" />
+    <meta name="robots" content="noindex, nofollow" />
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Семейное финансовое приложение</title>
-      <meta name="description" content="Удобное мобильное приложение для семейного финансового учёта с доходами, расходами, накоплениями и целями для эффективного планирования бюджета." />
-      <meta name="robots" content="noindex, nofollow" />
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-      
-    </head>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#6366f1" />
 
-    <body>
-      
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-      
-    </body>
-  </html>
-  
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Бюджет" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- Splash / brand color -->
+    <meta name="msapplication-TileColor" content="#6366f1" />
+
+    <style>
+      html, body { height: 100%; margin: 0; background: #0f0f14; }
+      #root { height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(console.error);
+        });
+      }
+    </script>
+  </body>
+</html>
