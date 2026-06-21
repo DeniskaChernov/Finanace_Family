@@ -1,13 +1,20 @@
 import { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
+// Сплошная приподнятая поверхность (без blur — быстро и премиально)
+const surfaceStyle = {
+  background: 'var(--card-solid)',
+  border: '1px solid var(--border)',
+  boxShadow: 'var(--shadow)',
+} as const;
+
 export function Card({ children, className = '', onClick }: {
   children: ReactNode; className?: string; onClick?: () => void;
 }) {
   return (
     <div onClick={onClick}
-      className={`glass rounded-2xl p-4 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''} ${className}`}
-      style={{ boxShadow: 'var(--shadow)' }}>
+      className={`rounded-2xl p-4 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''} ${className}`}
+      style={surfaceStyle}>
       {children}
     </div>
   );
@@ -18,19 +25,19 @@ export function StatCard({ label, value, sub, icon, accent, color, onClick }: {
 }) {
   return (
     <div onClick={onClick}
-      className={`glass rounded-2xl p-4 flex flex-col gap-1 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
-      style={{ boxShadow: 'var(--shadow)' }}>
+      className={`rounded-2xl p-4 flex flex-col gap-1 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
+      style={surfaceStyle}>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</span>
         {icon && (
-          <span className="text-lg w-8 h-8 flex items-center justify-center rounded-xl"
+          <span className="text-base w-7 h-7 flex items-center justify-center rounded-lg"
             style={{ background: accent ? accent + '22' : 'var(--accent)', color: accent || 'var(--accent-foreground)' }}>
             {icon}
           </span>
         )}
       </div>
-      <span className="text-xl font-bold tracking-tight" style={{ color: color || accent || 'inherit' }}>{value}</span>
-      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+      <span className="text-lg font-bold tracking-tight font-mono" style={{ color: color || accent || 'inherit' }}>{value}</span>
+      {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
     </div>
   );
 }
@@ -47,8 +54,8 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Удалить',
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4"/>
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{background:danger?'#fef2f2':'var(--accent)'}}>
-            <AlertTriangle size={18} style={{color:danger?'#ef4444':'var(--primary)'}}/>
+            style={{background:danger?'rgba(251,113,133,0.14)':'var(--accent)'}}>
+            <AlertTriangle size={18} style={{color:danger?'#FB7185':'var(--primary)'}}/>
           </div>
           <h3 className="text-base font-bold">{title}</h3>
         </div>
@@ -93,9 +100,9 @@ export function Sheet({ open = true, onClose, title, children }: {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative glass rounded-t-3xl p-5 pb-10 max-h-[92dvh] overflow-y-auto animate-in"
-        style={{ boxShadow: '0 -8px 40px rgba(0,0,0,0.3)' }}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative rounded-t-3xl p-5 pb-10 max-h-[92dvh] overflow-y-auto animate-in"
+        style={{ background: 'var(--card-solid)', borderTop: '1px solid var(--border)', boxShadow: '0 -16px 50px rgba(0,0,0,0.6)' }}>
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
         {title && <h2 className="text-lg font-bold mb-5">{title}</h2>}
         {children}
@@ -140,15 +147,18 @@ export function Btn({ children, onClick, variant = 'primary', className = '', di
   children: ReactNode; onClick?: () => void; variant?: BtnVariant;
   className?: string; disabled?: boolean; type?: 'button' | 'submit'; fullWidth?: boolean;
 }) {
-  const base = 'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none';
+  const base = 'inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none';
   const variants: Record<BtnVariant, string> = {
-    primary: 'bg-primary text-primary-foreground shadow-md shadow-primary/25',
+    primary: 'text-white',
     secondary: 'bg-secondary text-secondary-foreground border border-border',
     ghost: 'bg-transparent text-foreground hover:bg-muted',
     danger: 'bg-destructive/10 text-destructive border border-destructive/20',
   };
+  const primaryStyle = variant === 'primary'
+    ? { background: 'var(--grad-brand)', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }
+    : undefined;
   return (
-    <button type={type} onClick={onClick} disabled={disabled}
+    <button type={type} onClick={onClick} disabled={disabled} style={primaryStyle}
       className={`${base} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}>
       {children}
     </button>
@@ -182,7 +192,7 @@ export function Toggle({ checked, onChange, label }: {
       <div onClick={() => onChange(!checked)}
         className="relative w-12 h-6 rounded-full transition-colors duration-200"
         style={{ background: checked ? 'var(--primary)' : 'var(--switch-background)' }}>
-        <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200"
+        <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-[var(--surface-2)] rounded-full shadow-sm transition-transform duration-200"
           style={{ transform: checked ? 'translateX(24px)' : 'translateX(0)' }} />
       </div>
     </label>

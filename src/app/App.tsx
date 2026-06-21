@@ -38,17 +38,17 @@ function BottomNav({ active,onChange,unreadNotif,profileName }: { active:TabType
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-30 px-3"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', paddingTop: '8px' }}>
-      <div className="glass rounded-2xl flex shadow-lg" style={{ boxShadow: 'var(--shadow-lg)', border: '1px solid var(--glass-border)' }}>
+      <div className="glass rounded-[1.4rem] flex" style={{ boxShadow: 'var(--shadow-lg)', border: '1px solid var(--glass-border)' }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => onChange(t.id)}
-            className={`flex-1 flex flex-col items-center py-3 gap-1 transition-all relative rounded-2xl ${active === t.id ? 'text-primary' : 'text-muted-foreground'}`}>
+            className={`flex-1 flex flex-col items-center py-3 gap-1 transition-all relative rounded-[1.4rem] ${active === t.id ? 'text-white' : 'text-muted-foreground'}`}>
             {active === t.id && (
-              <div className="absolute inset-1 rounded-xl opacity-10 bg-primary" />
+              <div className="absolute inset-1.5 rounded-2xl" style={{ background: 'var(--grad-brand)', boxShadow: '0 6px 18px rgba(99,102,241,0.4)' }} />
             )}
             <div className="relative z-10">
               {t.icon}
               {t.id === 'more' && unreadNotif > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[8px] font-bold px-1 py-px rounded-full min-w-[14px] text-center">
+                <span className="absolute -top-1 -right-2 text-white text-[8px] font-bold px-1 py-px rounded-full min-w-[14px] text-center" style={{ background: '#FB7185' }}>
                   {unreadNotif}
                 </span>
               )}
@@ -166,11 +166,11 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [darkMode, setDarkMode] = useState(()=>localStorage.getItem("theme")==="dark");
+  const [darkMode, setDarkMode] = useState(()=>localStorage.getItem("theme")!=="light"); // тёмная тема по умолчанию
   const [toast, setToast] = useState<{msg:string;type:'success'|'error'|'warning'|'info'}|null>(null);
   const showToast = (msg:string, type:'success'|'error'|'warning'|'info'='info') => setToast({msg,type});
 
-  useEffect(()=>{ document.documentElement.classList.toggle("dark",darkMode); localStorage.setItem("theme",darkMode?"dark":"light"); },[darkMode]);
+  useEffect(()=>{ document.documentElement.classList.toggle("light",!darkMode); localStorage.setItem("theme",darkMode?"dark":"light"); },[darkMode]);
 
   useEffect(()=>{ if(localStorage.getItem("fb_token") && userProfile) loadAll(); },[userProfile?.id]);
 

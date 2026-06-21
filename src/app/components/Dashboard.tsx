@@ -186,23 +186,23 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
       {(expTrend !== 0 || incTrend !== 0) && prevExpense > 0 && (
         <div className="px-4 grid grid-cols-2 gap-2">
           <div className="glass rounded-2xl px-3 py-3 flex items-center gap-2" style={{boxShadow:"var(--shadow)"}}>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${incTrend>=0?"bg-emerald-50":"bg-red-50"}`}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${incTrend>=0?"bg-emerald-500/10":"bg-rose-500/10"}`}>
               {incTrend>=0?"📈":"📉"}
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-medium">Доходы</p>
-              <p className={`text-sm font-bold ${incTrend>=0?"text-emerald-600":"text-red-500"}`}>
+              <p className={`text-sm font-bold ${incTrend>=0?"text-emerald-400":"text-rose-400"}`}>
                 {incTrend>=0?"+":""}{Math.round(incTrend)}% к пред. мес.
               </p>
             </div>
           </div>
           <div className="glass rounded-2xl px-3 py-3 flex items-center gap-2" style={{boxShadow:"var(--shadow)"}}>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${expTrend<=0?"bg-emerald-50":"bg-red-50"}`}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${expTrend<=0?"bg-emerald-500/10":"bg-rose-500/10"}`}>
               {expTrend<=0?"🎉":"⚠️"}
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-medium">Расходы</p>
-              <p className={`text-sm font-bold ${expTrend<=0?"text-emerald-600":"text-red-500"}`}>
+              <p className={`text-sm font-bold ${expTrend<=0?"text-emerald-400":"text-rose-400"}`}>
                 {expTrend>=0?"+":""}{Math.round(expTrend)}% к пред. мес.
               </p>
             </div>
@@ -241,14 +241,14 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
               return (
                 <div key={p.id} className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg`}
-                    style={{background: urgent ? "#fef2f2" : "var(--muted)"}}>
+                    style={{background: urgent ? "rgba(251,113,133,0.14)" : "var(--muted)"}}>
                     <Repeat size={16} style={{color: urgent ? "#ef4444" : "var(--muted-foreground)"}}/>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{p.name}</p>
                     <p className="text-[10px] text-muted-foreground">{FREQ_LABELS[p.frequency]} · {days===0?"Сегодня!":days===1?"Завтра":`Через ${days} дн.`}</p>
                   </div>
-                  <span className="text-sm font-bold font-mono text-red-500 flex-shrink-0">−{fmtUZS(p.amount)}</span>
+                  <span className="text-sm font-bold font-mono text-rose-400 flex-shrink-0">−{fmtUZS(p.amount)}</span>
                 </div>
               );
             })}
@@ -323,7 +323,7 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
             {recent.map(t=>(
               <div key={t.id} className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{background: t.type==="income" ? "#f0fdf4" : "#fef2f2"}}>
+                  style={{background: t.type==="income" ? "rgba(52,211,153,0.14)" : "rgba(251,113,133,0.14)"}}>
                   {t.type==="income"
                     ? <TrendingUp size={15} style={{color:"#10b981"}}/>
                     : <TrendingDown size={15} style={{color:"#ef4444"}}/>}

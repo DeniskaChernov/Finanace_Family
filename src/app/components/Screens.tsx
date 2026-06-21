@@ -16,9 +16,9 @@ const MONTHS_RU = ["январь","февраль","март","апрель","м
 const PIE_COLORS = ["#3b82f6","#10b981","#f59e0b","#8b5cf6","#ec4899","#06b6d4","#f97316","#84cc16"];
 const FREQ_LABELS: Record<Frequency,string> = { daily:"Ежедневно", weekly:"Еженедельно", monthly:"Ежемесячно", yearly:"Ежегодно" };
 const PRIORITY_CONFIG: Record<Priority,{label:string;color:string;bg:string;dot:string}> = {
-  high:  {label:"Высокий",color:"text-red-600",bg:"bg-red-50 border-red-200",dot:"bg-red-500"},
-  medium:{label:"Средний",color:"text-amber-600",bg:"bg-amber-50 border-amber-200",dot:"bg-amber-500"},
-  low:   {label:"Низкий",color:"text-blue-600",bg:"bg-blue-50 border-blue-200",dot:"bg-blue-400"},
+  high:  {label:"Высокий",color:"text-rose-400",bg:"bg-rose-500/10 border-rose-500/30",dot:"bg-red-500"},
+  medium:{label:"Средний",color:"text-amber-400",bg:"bg-amber-500/10 border-amber-500/30",dot:"bg-amber-500"},
+  low:   {label:"Низкий",color:"text-indigo-400",bg:"bg-indigo-500/10 border-blue-200",dot:"bg-blue-400"},
 };
 const fmt = (n:number) => new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(n);
 const fmtUZS = (n:number) => `${fmt(n)} сум`;
@@ -67,7 +67,7 @@ export function SavingsScreen({ transactions,usdRate }: { transactions:Transacti
       {/* Hero */}
       <div className={`mx-4 rounded-3xl p-5 text-white relative overflow-hidden`}
         style={{background:netSavings>=0?"linear-gradient(135deg,#6366f1,#8b5cf6)":"linear-gradient(135deg,#ef4444,#dc2626)",boxShadow:"0 16px 48px rgba(99,102,241,0.3)"}}>
-        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 bg-white" style={{transform:"translate(30%,-30%)"}}/>
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 bg-[var(--surface-2)]" style={{transform:"translate(30%,-30%)"}}/>
         <p className="text-sm opacity-70 mb-1">Накоплено всего</p>
         <p className="text-3xl font-black font-mono">{netSavings>=0?"+":""}{fmtUZS(netSavings)}</p>
         {netUSD!==0&&<p className="text-xs opacity-60 mt-1 font-mono">В долларах: {netUSD>=0?"+":""}{fmtUSD(netUSD)}</p>}
@@ -107,9 +107,9 @@ export function SavingsScreen({ transactions,usdRate }: { transactions:Transacti
             <div key={i} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
               <span className="text-xs text-muted-foreground capitalize w-20">{m.label}</span>
               <div className="flex items-center gap-2 text-right">
-                <span className="text-[10px] text-emerald-600 font-mono w-20 text-right">+{fmtUZS(m.inc)}</span>
-                <span className="text-[10px] text-red-500 font-mono w-20 text-right">−{fmtUZS(m.exp)}</span>
-                <span className={`text-xs font-bold font-mono w-20 text-right ${m.net>=0?"text-primary":"text-red-500"}`}>{m.net>=0?"+":""}{fmtUZS(m.net)}</span>
+                <span className="text-[10px] text-emerald-400 font-mono w-20 text-right">+{fmtUZS(m.inc)}</span>
+                <span className="text-[10px] text-rose-400 font-mono w-20 text-right">−{fmtUZS(m.exp)}</span>
+                <span className={`text-xs font-bold font-mono w-20 text-right ${m.net>=0?"text-primary":"text-rose-400"}`}>{m.net>=0?"+":""}{fmtUZS(m.net)}</span>
               </div>
             </div>
           ))}
@@ -195,32 +195,32 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
                     <h3 className="font-bold truncate">{g.name}</h3>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${pc.bg} ${pc.color}`}>{pc.label}</span>
                   </div>
-                  <button onClick={()=>setConfirmDeleteId(g.id)} className="text-muted-foreground hover:text-red-500 ml-2 p-1"><Trash2 size={14}/></button>
+                  <button onClick={()=>setConfirmDeleteId(g.id)} className="text-muted-foreground hover:text-rose-400 ml-2 p-1"><Trash2 size={14}/></button>
                 </div>
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${done?"bg-emerald-50 text-emerald-600":"bg-blue-50 text-blue-600"}`}>{pct}%</span>
-                    {daysLeft!==null&&<span className={`text-xs font-semibold ${daysLeft<0?"text-red-500":daysLeft<30?"text-orange-500":"text-muted-foreground"}`}>{daysLeft<0?`просрочено ${Math.abs(daysLeft)}д`:daysLeft===0?"сегодня!":`${daysLeft} дн.`}</span>}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${done?"bg-emerald-500/10 text-emerald-400":"bg-indigo-500/10 text-indigo-400"}`}>{pct}%</span>
+                    {daysLeft!==null&&<span className={`text-xs font-semibold ${daysLeft<0?"text-rose-400":daysLeft<30?"text-orange-400":"text-muted-foreground"}`}>{daysLeft<0?`просрочено ${Math.abs(daysLeft)}д`:daysLeft===0?"сегодня!":`${daysLeft} дн.`}</span>}
                   </div>
                   <div className="h-2.5 bg-muted rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all duration-500 ${done?"bg-emerald-500":g.priority==="high"?"bg-red-500":g.priority==="low"?"bg-blue-400":"bg-primary"}`} style={{width:`${pct}%`}}/></div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center mb-3">
                   <div className="bg-muted/60 rounded-xl py-2"><p className="text-[10px] text-muted-foreground mb-0.5">Цель</p><p className="text-xs font-bold font-mono">{fmtUZS(g.target_amount)}</p></div>
-                  <div className="bg-emerald-50 rounded-xl py-2"><p className="text-[10px] text-emerald-600 mb-0.5">Накоплено</p><p className="text-xs font-bold font-mono text-emerald-600">{fmtUZS(g.allocated)}</p></div>
-                  <div className={`rounded-xl py-2 ${done?"bg-emerald-50":"bg-red-50"}`}><p className={`text-[10px] mb-0.5 ${done?"text-emerald-600":"text-red-400"}`}>Осталось</p><p className={`text-xs font-bold font-mono ${done?"text-emerald-600":"text-red-500"}`}>{done?"✓":fmtUZS(remaining)}</p></div>
+                  <div className="bg-emerald-500/10 rounded-xl py-2"><p className="text-[10px] text-emerald-400 mb-0.5">Накоплено</p><p className="text-xs font-bold font-mono text-emerald-400">{fmtUZS(g.allocated)}</p></div>
+                  <div className={`rounded-xl py-2 ${done?"bg-emerald-500/10":"bg-rose-500/10"}`}><p className={`text-[10px] mb-0.5 ${done?"text-emerald-400":"text-rose-300"}`}>Осталось</p><p className={`text-xs font-bold font-mono ${done?"text-emerald-400":"text-rose-400"}`}>{done?"✓":fmtUZS(remaining)}</p></div>
                 </div>
                 {!done&&etaMonths!==null&&(
-                  <div className={`rounded-xl px-3 py-2 flex items-center gap-2 mb-2 ${willMissDeadline?"bg-red-50 border border-red-200":"bg-blue-50"}`}>
-                    <Clock size={13} className={willMissDeadline?"text-red-500":"text-blue-500"}/>
-                    <p className={`text-xs ${willMissDeadline?"text-red-700":"text-blue-700"}`}>
+                  <div className={`rounded-xl px-3 py-2 flex items-center gap-2 mb-2 ${willMissDeadline?"bg-rose-500/10 border border-rose-500/30":"bg-indigo-500/10"}`}>
+                    <Clock size={13} className={willMissDeadline?"text-rose-400":"text-indigo-400"}/>
+                    <p className={`text-xs ${willMissDeadline?"text-rose-300":"text-indigo-300"}`}>
                       {etaMonths===0?"Цель достижима в этом месяце!":willMissDeadline?`⚠ Цель через ${etaMonths} мес. — позже дедлайна`:`При текущем темпе: через ${etaMonths} мес. (${etaDate?.toLocaleDateString("ru-RU",{month:"long",year:"numeric"})})`}
                     </p>
                   </div>
                 )}
                 {monthlyNeeded&&!done&&(
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 flex items-center gap-2 mb-2">
-                    <Calendar size={13} className="text-amber-500 flex-shrink-0"/>
-                    <p className="text-xs text-amber-700">Нужно откладывать <strong>{fmtUZS(monthlyNeeded)}/мес.</strong></p>
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-center gap-2 mb-2">
+                    <Calendar size={13} className="text-amber-400 flex-shrink-0"/>
+                    <p className="text-xs text-amber-300">Нужно откладывать <strong>{fmtUZS(monthlyNeeded)}/мес.</strong></p>
                   </div>
                 )}
                 {g.note&&<p className="text-xs text-muted-foreground italic">📝 {g.note}</p>}
@@ -298,10 +298,10 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
     <div className="pb-4 space-y-4">
       <div className="px-4"><h2 className="text-xl font-bold">Аналитика</h2></div>
       <div className="px-4 grid grid-cols-2 gap-3">
-        <StatCard label="Всего доходов" value={fmtUZS(totalIncome)} color="text-emerald-600"/>
-        <StatCard label="Всего расходов" value={fmtUZS(totalExpense)} color="text-red-500"/>
+        <StatCard label="Всего доходов" value={fmtUZS(totalIncome)} color="text-emerald-400"/>
+        <StatCard label="Всего расходов" value={fmtUZS(totalExpense)} color="text-rose-400"/>
         <StatCard label="Средний чек" value={fmtUZS(avgCheck)} sub="расход"/>
-        <StatCard label="Накоплено" value={fmtUZS(totalIncome-totalExpense)} color="text-blue-600"/>
+        <StatCard label="Накоплено" value={fmtUZS(totalIncome-totalExpense)} color="text-indigo-400"/>
       </div>
       <Card className="p-4 mx-4">
         <SectionHeader title="Динамика доходов и расходов"/>
@@ -352,7 +352,7 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
               <div key={name} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">{name[0]}</div>
                 <div className="flex-1"><p className="text-sm font-semibold">{name}</p></div>
-                <span className="text-sm font-bold font-mono text-red-500">−{fmtUZS(val)}</span>
+                <span className="text-sm font-bold font-mono text-rose-400">−{fmtUZS(val)}</span>
               </div>
             ))}
           </div>
@@ -393,21 +393,21 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete }
                 <div className="flex items-start justify-between mb-3">
                   <div><p className="text-sm font-bold">{b.category}</p><p className="text-xs text-muted-foreground">Лимит: {fmtUZS(b.month_limit)}</p></div>
                   <div className="flex items-center gap-2">
-                    {over&&<span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1"><AlertTriangle size={9}/>Превышен</span>}
-                    <button onClick={()=>setConfirmDeleteId(b.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>
+                    {over&&<span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1"><AlertTriangle size={9}/>Превышен</span>}
+                    <button onClick={()=>setConfirmDeleteId(b.id)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>
                   </div>
                 </div>
                 <div className="mb-3">
                   <div className="flex justify-between mb-1.5">
-                    <span className={`text-xs font-bold ${over?"text-red-500":"text-foreground"}`}>{pct}%</span>
-                    <span className={`text-xs font-mono ${over?"text-red-500":"text-muted-foreground"}`}>{fmtUZS(spent)} / {fmtUZS(b.month_limit)}</span>
+                    <span className={`text-xs font-bold ${over?"text-rose-400":"text-foreground"}`}>{pct}%</span>
+                    <span className={`text-xs font-mono ${over?"text-rose-400":"text-muted-foreground"}`}>{fmtUZS(spent)} / {fmtUZS(b.month_limit)}</span>
                   </div>
                   <div className="h-2.5 bg-muted rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${over?"bg-red-500":pct>80?"bg-amber-500":"bg-emerald-500"}`} style={{width:`${pct}%`}}/></div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-muted/50 rounded-xl py-2"><p className="text-[10px] text-muted-foreground mb-0.5">План</p><p className="text-xs font-bold font-mono">{fmtUZS(b.month_limit)}</p></div>
-                  <div className={`rounded-xl py-2 ${over?"bg-red-50":"bg-emerald-50"}`}><p className={`text-[10px] mb-0.5 ${over?"text-red-500":"text-emerald-600"}`}>Факт</p><p className={`text-xs font-bold font-mono ${over?"text-red-500":"text-emerald-600"}`}>{fmtUZS(spent)}</p></div>
-                  <div className={`rounded-xl py-2 ${over?"bg-red-50":"bg-blue-50"}`}><p className={`text-[10px] mb-0.5 ${over?"text-red-500":"text-blue-600"}`}>Остаток</p><p className={`text-xs font-bold font-mono ${over?"text-red-500":"text-blue-600"}`}>{fmtUZS(Math.abs(b.month_limit-spent))}{over?" ↑":""}</p></div>
+                  <div className={`rounded-xl py-2 ${over?"bg-rose-500/10":"bg-emerald-500/10"}`}><p className={`text-[10px] mb-0.5 ${over?"text-rose-400":"text-emerald-400"}`}>Факт</p><p className={`text-xs font-bold font-mono ${over?"text-rose-400":"text-emerald-400"}`}>{fmtUZS(spent)}</p></div>
+                  <div className={`rounded-xl py-2 ${over?"bg-rose-500/10":"bg-indigo-500/10"}`}><p className={`text-[10px] mb-0.5 ${over?"text-rose-400":"text-indigo-400"}`}>Остаток</p><p className={`text-xs font-bold font-mono ${over?"text-rose-400":"text-indigo-400"}`}>{fmtUZS(Math.abs(b.month_limit-spent))}{over?" ↑":""}</p></div>
                 </div>
               </Card>
             );
@@ -464,23 +464,23 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
             const days=daysUntil(p.next_date);
             const urgent=days<=3;
             return (
-              <Card key={p.id} className={`p-4 ${urgent?"border-red-200":""}`}>
+              <Card key={p.id} className={`p-4 ${urgent?"border-rose-500/30":""}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${urgent?"bg-red-50":"bg-muted"}`}>
-                    <Repeat size={18} className={urgent?"text-red-500":"text-muted-foreground"}/>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${urgent?"bg-rose-500/10":"bg-muted"}`}>
+                    <Repeat size={18} className={urgent?"text-rose-400":"text-muted-foreground"}/>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div><p className="text-sm font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.category} · {FREQ_LABELS[p.frequency]}</p></div>
-                      <p className="text-base font-bold font-mono text-red-500 flex-shrink-0">−{fmtUZS(p.amount)}</p>
+                      <p className="text-base font-bold font-mono text-rose-400 flex-shrink-0">−{fmtUZS(p.amount)}</p>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <span className={`text-xs font-semibold ${urgent?"text-red-500":days<=7?"text-amber-500":"text-muted-foreground"}`}>
+                      <span className={`text-xs font-semibold ${urgent?"text-rose-400":days<=7?"text-amber-400":"text-muted-foreground"}`}>
                         {days<0?"Просрочен":days===0?"Сегодня!":days===1?"Завтра":`Через ${days} дн.`} · {new Date(p.next_date).toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}
                       </span>
                       <div className="flex gap-1">
-                        <button onClick={()=>onMarkPaid(p.id)} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">✓ Оплачено</button>
-                        <button onClick={()=>setConfirmDeleteId(p.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>
+                        <button onClick={()=>onMarkPaid(p.id)} className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">✓ Оплачено</button>
+                        <button onClick={()=>setConfirmDeleteId(p.id)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>
                       </div>
                     </div>
                   </div>
@@ -584,14 +584,14 @@ export function CalendarScreen({ transactions,recurringPayments }: { transaction
                 <div key={t.id} className="flex items-center gap-2">
                   <div className={`w-1.5 h-8 rounded-full flex-shrink-0 ${t.type==="income"?"bg-emerald-500":"bg-red-500"}`}/>
                   <div className="flex-1 min-w-0"><p className="text-xs font-semibold truncate">{t.category}</p><p className="text-[10px] text-muted-foreground">{t.created_by_name}</p></div>
-                  <span className={`text-xs font-bold font-mono ${t.type==="income"?"text-emerald-600":"text-red-500"}`}>{t.type==="income"?"+":"−"}{fmtMoney(t.amount,t.currency??"UZS")}</span>
+                  <span className={`text-xs font-bold font-mono ${t.type==="income"?"text-emerald-400":"text-rose-400"}`}>{t.type==="income"?"+":"−"}{fmtMoney(t.amount,t.currency??"UZS")}</span>
                 </div>
               ))}
               {selRecur.map(p=>(
                 <div key={p.id} className="flex items-center gap-2">
                   <div className="w-1.5 h-8 rounded-full flex-shrink-0 bg-amber-500"/>
                   <div className="flex-1 min-w-0"><p className="text-xs font-semibold truncate">{p.name}</p><p className="text-[10px] text-muted-foreground">Регулярный · {FREQ_LABELS[p.frequency]}</p></div>
-                  <span className="text-xs font-bold font-mono text-amber-600">−{fmtUZS(p.amount)}</span>
+                  <span className="text-xs font-bold font-mono text-amber-400">−{fmtUZS(p.amount)}</span>
                 </div>
               ))}
             </div>
@@ -644,8 +644,8 @@ export function MonthlyReportScreen({ transactions,usdRate }: { transactions:Tra
         {topCats.length>0&&(
           <>
             <div className="grid grid-cols-2 gap-3">
-              {worstCat&&<Card className="p-3 border-red-100"><p className="text-[10px] text-red-500 font-bold uppercase mb-1">Больший расход</p><p className="text-xs font-bold truncate">{worstCat[0]}</p><p className="text-sm font-bold font-mono text-red-500">{fmtUZS(worstCat[1])}</p></Card>}
-              {bestCat&&bestCat!==worstCat&&<Card className="p-3 border-emerald-100"><p className="text-[10px] text-emerald-600 font-bold uppercase mb-1">Меньший расход</p><p className="text-xs font-bold truncate">{bestCat[0]}</p><p className="text-sm font-bold font-mono text-emerald-600">{fmtUZS(bestCat[1])}</p></Card>}
+              {worstCat&&<Card className="p-3 border-rose-500/20"><p className="text-[10px] text-rose-400 font-bold uppercase mb-1">Больший расход</p><p className="text-xs font-bold truncate">{worstCat[0]}</p><p className="text-sm font-bold font-mono text-rose-400">{fmtUZS(worstCat[1])}</p></Card>}
+              {bestCat&&bestCat!==worstCat&&<Card className="p-3 border-emerald-500/20"><p className="text-[10px] text-emerald-400 font-bold uppercase mb-1">Меньший расход</p><p className="text-xs font-bold truncate">{bestCat[0]}</p><p className="text-sm font-bold font-mono text-emerald-400">{fmtUZS(bestCat[1])}</p></Card>}
             </div>
             <Card className="p-4">
               <SectionHeader title="Расходы по категориям"/>
@@ -740,17 +740,17 @@ export function AllocationScreen({ goals,totalSavings,onUpdate }: {
     <div className="pb-4">
       <div className="mx-4 mb-4 bg-primary rounded-2xl p-5 text-white">
         <p className="text-sm opacity-70 mb-1">Распределено</p><p className="text-2xl font-bold font-mono">{fmtUZS(total)}</p>
-        <div className="mt-3"><div className="h-2 bg-white/20 rounded-full overflow-hidden"><div className={`h-full rounded-full ${isOver?"bg-red-400":"bg-white"}`} style={{width:`${totalSavings>0?Math.min(100,Math.round(total/totalSavings*100)):0}%`}}/></div>
+        <div className="mt-3"><div className="h-2 bg-white/20 rounded-full overflow-hidden"><div className={`h-full rounded-full ${isOver?"bg-red-400":"bg-[var(--surface-2)]"}`} style={{width:`${totalSavings>0?Math.min(100,Math.round(total/totalSavings*100)):0}%`}}/></div>
         <div className="flex justify-between mt-1.5"><p className="text-xs opacity-60">из {fmtUZS(totalSavings)}</p><p className={`text-xs font-semibold ${isOver?"text-red-300":"opacity-70"}`}>{isOver?`⚠ Превышение на ${fmtUZS(Math.abs(unalloc))}`:`Свободно: ${fmtUZS(unalloc)}`}</p></div></div>
       </div>
-      {isOver&&<div className="mx-4 mb-4 flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><AlertCircle size={16}/><p className="text-sm font-semibold">Распределено больше накоплений!</p></div>}
+      {isOver&&<div className="mx-4 mb-4 flex items-center gap-2 text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3"><AlertCircle size={16}/><p className="text-sm font-semibold">Распределено больше накоплений!</p></div>}
       <div className="px-4 space-y-3">
         {[...goals].sort((a,b)=>({high:0,medium:1,low:2}[a.priority])-({high:0,medium:1,low:2}[b.priority])).map(g=>{
           const val=parseFloat(amounts[g.id]||"0")||0;
           const gpct=g.target_amount>0?Math.min(100,Math.round((val/g.target_amount)*100)):0;
           return (
             <Card key={g.id} className="p-4">
-              <div className="flex justify-between items-start mb-1"><p className="text-sm font-semibold">{g.name}</p>{saved===g.id&&<span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1"><CheckCircle size={10}/>OK</span>}</div>
+              <div className="flex justify-between items-start mb-1"><p className="text-sm font-semibold">{g.name}</p>{saved===g.id&&<span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle size={10}/>OK</span>}</div>
               <p className="text-xs text-muted-foreground mb-3">Цель: {fmtUZS(g.target_amount)} · {gpct}%</p>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-3"><div className="h-full bg-primary rounded-full" style={{width:`${gpct}%`}}/></div>
               <div className="flex gap-2">
@@ -776,19 +776,19 @@ export function CategoriesScreen({ categories,onAdd,onDelete }: {
     <div><p className={`text-xs font-bold uppercase tracking-wider mb-2 ${color}`}>{title} · {items.length}</p>
     <div className="space-y-2">{items.map(c=>(
       <div key={c.id} className="bg-card rounded-xl border border-border px-4 py-3 flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${c.type==="income"?"bg-emerald-50":"bg-red-50"}`}><Tag size={13} className={c.type==="income"?"text-emerald-600":"text-red-500"}/></div>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${c.type==="income"?"bg-emerald-500/10":"bg-rose-500/10"}`}><Tag size={13} className={c.type==="income"?"text-emerald-400":"text-rose-400"}/></div>
         <span className="text-sm font-medium flex-1">{c.name}</span>
-        {c.is_default?<span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">по умолчанию</span>:<button onClick={()=>onDelete(c.id)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>}
+        {c.is_default?<span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">по умолчанию</span>:<button onClick={()=>onDelete(c.id)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>}
       </div>
     ))}</div></div>
   );
   return (
     <div className="pb-4">
       <div className="px-4 pb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Справочник</h2><button onClick={()=>setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button></div>
-      <div className="px-4 space-y-5"><Sec title="Доходы" items={categories.filter(c=>c.type==="income")} color="text-emerald-600"/><Sec title="Расходы" items={categories.filter(c=>c.type==="expense")} color="text-red-500"/></div>
+      <div className="px-4 space-y-5"><Sec title="Доходы" items={categories.filter(c=>c.type==="income")} color="text-emerald-400"/><Sec title="Расходы" items={categories.filter(c=>c.type==="expense")} color="text-rose-400"/></div>
       {showAdd&&<Sheet title="Новая категория" onClose={()=>setShowAdd(false)}>
         <div className="space-y-4">
-          <div className="flex bg-muted rounded-xl p-1">{(["expense","income"] as TxType[]).map(t=><button key={t} onClick={()=>setType(t)} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${type===t?"bg-white shadow-sm text-foreground":"text-muted-foreground"}`}>{t==="expense"?"Расход":"Доход"}</button>)}</div>
+          <div className="flex bg-muted rounded-xl p-1">{(["expense","income"] as TxType[]).map(t=><button key={t} onClick={()=>setType(t)} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${type===t?"bg-[var(--surface-2)] shadow-sm text-foreground":"text-muted-foreground"}`}>{t==="expense"?"Расход":"Доход"}</button>)}</div>
           <Field label="Название"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Категория..." autoFocus/></Field>
           <Btn onClick={async()=>{if(!name)return;setSaving(true);await onAdd(name,type);setSaving(false);setShowAdd(false);setName("");}} disabled={saving||!name}>{saving?"...":"Добавить"}</Btn>
         </div>
@@ -808,7 +808,7 @@ export function NotificationsScreen({ notifications,onMarkRead,onMarkAllRead }: 
       <div className="px-4 pb-4 flex items-center justify-between"><div className="flex items-center gap-2"><h2 className="text-xl font-bold">Уведомления</h2>{unread>0&&<span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unread}</span>}</div>{unread>0&&<button onClick={onMarkAllRead} className="text-xs text-primary font-bold">Прочитать все</button>}</div>
       {notifications.length===0?<div className="flex flex-col items-center justify-center py-20 text-muted-foreground"><Bell size={48} className="mb-3 opacity-20"/><p className="text-sm">Нет уведомлений</p></div>:
       <div className="px-4 space-y-2">{notifications.map(n=>(
-        <button key={n.id} onClick={()=>!n.read&&onMarkRead(n.id)} className={`w-full text-left rounded-2xl border p-4 flex items-start gap-3 ${n.read?"bg-card border-border":"bg-blue-50 border-blue-100"}`}>
+        <button key={n.id} onClick={()=>!n.read&&onMarkRead(n.id)} className={`w-full text-left rounded-2xl border p-4 flex items-start gap-3 ${n.read?"bg-card border-border":"bg-indigo-500/10 border-indigo-500/20"}`}>
           <span className="text-xl flex-shrink-0">{icons[n.type]||"ℹ️"}</span>
           <div className="flex-1 min-w-0"><p className="text-sm font-semibold">{n.title}</p><p className="text-xs text-muted-foreground mt-0.5">{n.body}</p><p className="text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_at)}</p></div>
           {!n.read&&<div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1"/>}
@@ -830,7 +830,7 @@ export function FamilyScreen({ members,currentUser }: { members:AppUser[]; curre
           <div className="space-y-3">{members.map(m=>(
             <div key={m.id} className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-base font-bold">{m.name[0]}</div>
-              <div className="flex-1"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{m.name}</p>{m.role==="owner"&&<Crown size={12} className="text-amber-500"/>}</div><p className="text-xs text-muted-foreground">{m.role==="owner"?"Владелец":"Участник"}{m.id===currentUser.id?" (вы)":""}</p></div>
+              <div className="flex-1"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{m.name}</p>{m.role==="owner"&&<Crown size={12} className="text-amber-400"/>}</div><p className="text-xs text-muted-foreground">{m.role==="owner"?"Владелец":"Участник"}{m.id===currentUser.id?" (вы)":""}</p></div>
             </div>
           ))}</div>
         </Card>

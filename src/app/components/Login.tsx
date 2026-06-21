@@ -47,12 +47,12 @@ export function LoginScreen({ onLogin }: { onLogin: (u: AppUser, token: string) 
       <div className="relative w-full max-w-sm flex flex-col gap-8">
         {/* Logo */}
         <div className="text-center">
-          <div className="w-20 h-20 rounded-3xl mx-auto mb-4 flex items-center justify-center text-4xl shadow-xl"
-            style={{ background: 'var(--primary)' }}>
+          <div className="w-20 h-20 rounded-[1.4rem] mx-auto mb-4 flex items-center justify-center text-4xl"
+            style={{ background: 'var(--grad-brand)', boxShadow: '0 16px 40px rgba(99,102,241,0.45)' }}>
             💰
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Семейный бюджет</h1>
-          <p className="text-sm text-muted-foreground mt-1">Выберите профиль для входа</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Семейный бюджет</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">Выберите профиль для входа</p>
         </div>
 
         {/* User cards */}

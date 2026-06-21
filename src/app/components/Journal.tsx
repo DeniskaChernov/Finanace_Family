@@ -61,22 +61,22 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
   return (
     <div className="bg-card rounded-2xl border border-border overflow-hidden">
       <div className="px-4 py-3.5 flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type==="income"?"bg-emerald-50":"bg-red-50"}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type==="income"?"bg-emerald-500/10":"bg-rose-500/10"}`}>
           {t.receipt_url
             ? <img src={t.receipt_url} className="w-10 h-10 rounded-xl object-cover" alt="чек"/>
-            : t.type==="income" ? <TrendingUp size={18} className="text-emerald-600"/> : <TrendingDown size={18} className="text-red-500"/>}
+            : t.type==="income" ? <TrendingUp size={18} className="text-emerald-400"/> : <TrendingDown size={18} className="text-rose-400"/>}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{t.category}</p>
           <p className="text-[10px] text-muted-foreground truncate">{t.created_by_name}{t.description&&` · ${t.description}`}</p>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className={`text-sm font-bold font-mono ${t.type==="income"?"text-emerald-600":"text-red-500"}`}>
+          <span className={`text-sm font-bold font-mono ${t.type==="income"?"text-emerald-400":"text-rose-400"}`}>
             {t.type==="income"?"+":"−"}{fmtMoney(t.amount,t.currency??"UZS")}
           </span>
           <button onClick={handleExpand} className="text-muted-foreground hover:text-primary p-1"><MessageCircle size={13}/></button>
           {t.user_id===currentUserId&&<button onClick={onEdit} className="text-muted-foreground hover:text-primary p-1"><Edit2 size={13}/></button>}
-          {t.user_id===currentUserId&&<button onClick={()=>setConfirmDelete(true)} className="text-muted-foreground hover:text-red-500 p-1"><Trash2 size={13}/></button>}
+          {t.user_id===currentUserId&&<button onClick={()=>setConfirmDelete(true)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>}
         </div>
       </div>
       {confirmDelete&&<ConfirmDialog title="Удалить операцию?" message={`${t.category} · ${fmtMoney(t.amount,t.currency??"UZS")}`} onConfirm={()=>{setConfirmDelete(false);onDelete();}} onCancel={()=>setConfirmDelete(false)}/>}
@@ -320,9 +320,9 @@ export function JournalScreen({ transactions,categories,onSave,onDelete,currentU
           <button onClick={()=>setFilterMonth(mk=>addMonths(mk,1))} disabled={isCurrent} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center disabled:opacity-30"><ChevronRight size={18}/></button>
         </div>
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-center"><p className="text-[10px] text-emerald-600 font-bold uppercase">Доходы</p><p className="text-sm font-bold font-mono text-emerald-600">+{fmtUZS(totalIn)}</p></div>
-          <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-center"><p className="text-[10px] text-red-500 font-bold uppercase">Расходы</p><p className="text-sm font-bold font-mono text-red-500">−{fmtUZS(totalOut)}</p></div>
-          <div className={`border rounded-xl px-3 py-2 text-center ${totalIn-totalOut>=0?"bg-blue-50 border-blue-100":"bg-orange-50 border-orange-100"}`}><p className="text-[10px] text-muted-foreground font-bold uppercase">Остаток</p><p className={`text-sm font-bold font-mono ${totalIn-totalOut>=0?"text-blue-600":"text-orange-500"}`}>{fmtUZS(totalIn-totalOut)}</p></div>
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2 text-center"><p className="text-[10px] text-emerald-400 font-bold uppercase">Доходы</p><p className="text-sm font-bold font-mono text-emerald-400">+{fmtUZS(totalIn)}</p></div>
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2 text-center"><p className="text-[10px] text-rose-400 font-bold uppercase">Расходы</p><p className="text-sm font-bold font-mono text-rose-400">−{fmtUZS(totalOut)}</p></div>
+          <div className={`border rounded-xl px-3 py-2 text-center ${totalIn-totalOut>=0?"bg-indigo-500/10 border-indigo-500/20":"bg-orange-500/10 border-orange-500/20"}`}><p className="text-[10px] text-muted-foreground font-bold uppercase">Остаток</p><p className={`text-sm font-bold font-mono ${totalIn-totalOut>=0?"text-indigo-400":"text-orange-400"}`}>{fmtUZS(totalIn-totalOut)}</p></div>
         </div>
         <div className="relative mb-2"><Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"/><Input className="pl-9 bg-muted border-0" placeholder="Поиск..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
         <button onClick={()=>setShowFilters(v=>!v)} className="flex items-center gap-2 text-xs text-muted-foreground font-medium mb-2">
@@ -340,7 +340,7 @@ export function JournalScreen({ transactions,categories,onSave,onDelete,currentU
               <option value="all">Все категории</option>
               {allCats.map(c=><option key={c} value={c}>{c}</option>)}
             </Select>
-            {(filterType!=="all"||filterCat!=="all")&&<button onClick={()=>{setFilterType("all");setFilterCat("all");}} className="text-xs text-red-500 font-medium">Сбросить</button>}
+            {(filterType!=="all"||filterCat!=="all")&&<button onClick={()=>{setFilterType("all");setFilterCat("all");}} className="text-xs text-rose-400 font-medium">Сбросить</button>}
           </div>
         )}
       </div>
