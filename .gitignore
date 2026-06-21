@@ -1,0 +1,14 @@
+﻿node_modules/
+dist/
+.env
+*.local
+.DS_Store
+extracted/
+supabase/
+plans/
+guidelines/
+.claude/
+*.zip
+utils/
+src/app/components/figma/
+src/app/components/ui/
