@@ -2,7 +2,7 @@
 
 :root {
   --font-size: 16px;
-  --font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-family: 'Inter', system-ui, sans-serif;
 
   /* Light mode */
   --background: #f0f0f8;
@@ -121,6 +121,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-family);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
   }

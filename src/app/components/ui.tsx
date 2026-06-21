@@ -32,8 +32,8 @@ export function StatCard({ label, value, sub, icon, accent }: {
   );
 }
 
-export function Sheet({ open, onClose, title, children }: {
-  open: boolean; onClose: () => void; title?: string; children: ReactNode;
+export function Sheet({ open = true, onClose, title, children }: {
+  open?: boolean; onClose: () => void; title?: string; children: ReactNode;
 }) {
   if (!open) return null;
   return (

@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import {
-  FileText, Plus, Search, Filter, ChevronLeft, ChevronRight,
+  FileText, Plus, X, Search, Filter, ChevronLeft, ChevronRight,
   TrendingUp, TrendingDown, Edit2, Trash2, MessageCircle, Camera,
+  ArrowDownLeft, ArrowUpRight,
 } from "lucide-react";
 import { Sheet, Field, Input, Select, Btn } from "./ui";
 import { api } from "../../lib/api";
@@ -109,11 +110,11 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
   );
 }
 
-export function TxSheet({ categories,initial,onSave,onClose,usdRate }: {
-  categories:Category[]; initial?:Transaction;
+export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate }: {
+  categories:Category[]; initial?:Transaction; initialType?:"income"|"expense";
   onSave:(t:any,id?:string)=>Promise<void>; onClose:()=>void; usdRate:number;
 }) {
-  const [type,setType] = useState<TxType>(initial?.type??"expense");
+  const [type,setType] = useState<TxType>(initial?.type??initialType??"expense");
   const [currency,setCurrency] = useState<Currency>(initial?.currency??"UZS");
   const [category,setCategory] = useState(initial?.category??"");
   const [amount,setAmount] = useState(initial?String(initial.amount):"");
@@ -283,8 +284,25 @@ export function JournalScreen({ transactions,categories,onSave,onDelete,currentU
         </div>
       )}
 
-      <button onClick={()=>{setEditing(undefined);setShowSheet(true);}} className="fixed bottom-24 right-5 w-14 h-14 rounded-full bg-primary text-white shadow-xl flex items-center justify-center z-40 active:scale-95 transition-transform"><Plus size={26}/></button>
-      {showSheet&&<TxSheet categories={categories} initial={editing} onSave={onSave} usdRate={usdRate} onClose={()=>{setShowSheet(false);setEditing(undefined);}}/>}
+      {/* FAB */}
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2">
+        {showSheet && !editing && (
+          <>
+            <button onClick={()=>{setEditing({type:"income"} as any);}} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold shadow-lg active:scale-95 transition-all" style={{background:"#10b981",boxShadow:"0 4px 20px rgba(16,185,129,0.4)"}}>
+              <ArrowDownLeft size={16}/> Доход
+            </button>
+            <button onClick={()=>{setEditing({type:"expense"} as any);}} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold shadow-lg active:scale-95 transition-all" style={{background:"#ef4444",boxShadow:"0 4px 20px rgba(239,68,68,0.4)"}}>
+              <ArrowUpRight size={16}/> Расход
+            </button>
+          </>
+        )}
+        <button onClick={()=>{if(showSheet&&!editing){setShowSheet(false);}else{setEditing(undefined);setShowSheet(v=>!v);}}}
+          className="w-14 h-14 rounded-2xl text-white flex items-center justify-center shadow-xl active:scale-95 transition-all"
+          style={{background:"var(--primary)",boxShadow:"0 8px 30px rgba(99,102,241,0.5)"}}>
+          {showSheet&&!editing ? <X size={22}/> : <Plus size={24}/>}
+        </button>
+      </div>
+      {editing&&<TxSheet categories={categories} initial={editing.id ? editing : undefined} initialType={editing.type} onSave={onSave} usdRate={usdRate} onClose={()=>{setShowSheet(false);setEditing(undefined);}}/>}
     </div>
   );
 }
