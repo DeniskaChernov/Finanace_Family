@@ -199,26 +199,31 @@ export default function App() {
   };
 
   const saveTransaction = async (t:any, id?:string) => {
-    if(id) {
-      const u=await api.transactions.update(id,t);
-      setTransactions(prev=>prev.map(tx=>tx.id===id?u:tx));
-      showToast('Операция обновлена', 'success');
-    } else {
-      const c=await api.transactions.create({...t,receipt_url:t.receipt_url??null});
-      setTransactions(prev=>[c,...prev]);
-      showToast(`${t.type==="income"?"💰 Доход":"💸 Расход"} ${fmtUZS(t.amount)} добавлен`, t.type==="income"?'success':'info');
-      await notify(`${userProfile?.name} добавил ${t.type==="income"?"доход":"расход"}`,`${t.category}: ${fmtUZS(t.amount)}`,"transaction");
-      // Проверка бюджетных лимитов при расходе
-      if(t.type==="expense") {
-        const mk = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
-        const budget = budgets.find(b=>b.category===t.category&&b.month===mk);
-        if(budget) {
-          const spent = transactions.filter(tx=>tx.type==="expense"&&tx.category===t.category&&tx.date.startsWith(mk)).reduce((s,tx)=>s+tx.amount,0) + t.amount;
-          const pct = Math.round((spent/budget.month_limit)*100);
-          if(spent>budget.month_limit) showToast(`⚠️ Бюджет "${t.category}" превышен! ${fmtUZS(spent)} из ${fmtUZS(budget.month_limit)}`,'warning');
-          else if(pct>=80) showToast(`⚠️ Бюджет "${t.category}" использован на ${pct}%`,'warning');
+    try {
+      if(id) {
+        const u=await api.transactions.update(id,t);
+        setTransactions(prev=>prev.map(tx=>tx.id===id?u:tx));
+        showToast('Операция обновлена', 'success');
+      } else {
+        const c=await api.transactions.create({...t,receipt_url:t.receipt_url??null});
+        setTransactions(prev=>[c,...prev]);
+        showToast(`${t.type==="income"?"💰 Доход":"💸 Расход"} ${fmtUZS(t.amount)} добавлен`, t.type==="income"?'success':'info');
+        await notify(`${userProfile?.name} добавил ${t.type==="income"?"доход":"расход"}`,`${t.category}: ${fmtUZS(t.amount)}`,"transaction");
+        // Проверка бюджетных лимитов при расходе
+        if(t.type==="expense") {
+          const mk = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+          const budget = budgets.find(b=>b.category===t.category&&b.month===mk);
+          if(budget) {
+            const spent = transactions.filter(tx=>tx.type==="expense"&&tx.category===t.category&&tx.date.startsWith(mk)).reduce((s,tx)=>s+tx.amount,0) + t.amount;
+            const pct = Math.round((spent/budget.month_limit)*100);
+            if(spent>budget.month_limit) showToast(`⚠️ Бюджет "${t.category}" превышен! ${fmtUZS(spent)} из ${fmtUZS(budget.month_limit)}`,'warning');
+            else if(pct>=80) showToast(`⚠️ Бюджет "${t.category}" использован на ${pct}%`,'warning');
+          }
         }
       }
+    } catch (e:any) {
+      showToast(e?.message || 'Не удалось сохранить операцию', 'error');
+      throw e; // пробрасываем — TxSheet оставит лист открытым для повтора
     }
   };
 

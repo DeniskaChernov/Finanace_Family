@@ -153,6 +153,8 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
     try {
       await onSave({type,category,amount:amtNum,currency,date,description:desc,receipt_url:receiptUrl},initial?.id);
       onClose();
+    } catch {
+      /* ошибка уже показана тостом — лист оставляем открытым для повтора */
     } finally { setSaving(false); }
   };
 
