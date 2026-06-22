@@ -268,7 +268,7 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
             </Field>
             <Field label="Дедлайн (необязательно)"><Input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}/></Field>
             <Field label="Заметка"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Необязательно"/></Field>
-            <Btn onClick={async()=>{if(!name||!target)return;setSaving(true);await onAdd({name,target_amount:parseFloat(target),deadline:deadline||undefined,note:note||undefined,priority});setSaving(false);setShowAdd(false);setName("");setTarget("");setDeadline("");setNote("");setPriority("medium");}} disabled={saving||!name||!target}>{saving?"...":"Создать цель"}</Btn>
+            <Btn onClick={async()=>{if(!name||!target)return;setSaving(true);try{await onAdd({name,target_amount:parseFloat(target),deadline:deadline||undefined,note:note||undefined,priority});setShowAdd(false);setName("");setTarget("");setDeadline("");setNote("");setPriority("medium");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name||!target}>{saving?"...":"Создать цель"}</Btn>
           </div>
         </Sheet>
       )}
@@ -426,7 +426,7 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete }
               </Select>
             </Field>
             <Field label="Лимит на месяц"><Input type="number" value={limit} onChange={e=>setLimit(e.target.value)} placeholder="0" inputMode="decimal" autoFocus/></Field>
-            <Btn onClick={async()=>{if(!cat||!limit)return;setSaving(true);await onAdd({category:cat,month_limit:parseFloat(limit),month:mk});setSaving(false);setShowAdd(false);setCat("");setLimit("");}} disabled={saving||!cat||!limit}>{saving?"...":"Создать бюджет"}</Btn>
+            <Btn onClick={async()=>{if(!cat||!limit)return;setSaving(true);try{await onAdd({category:cat,month_limit:parseFloat(limit),month:mk});setShowAdd(false);setCat("");setLimit("");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!cat||!limit}>{saving?"...":"Создать бюджет"}</Btn>
           </div>
         </Sheet>
       )}
@@ -509,7 +509,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
               </div>
             </Field>
             <Field label="Следующая дата"><Input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)}/></Field>
-            <Btn onClick={async()=>{if(!name||!amount)return;setSaving(true);await onAdd({name,category:cat||"Прочее",amount:parseFloat(amount),frequency:freq,next_date:nextDate});setSaving(false);setShowAdd(false);setName("");setCat("");setAmount("");setFreq("monthly");}} disabled={saving||!name||!amount}>{saving?"...":"Добавить"}</Btn>
+            <Btn onClick={async()=>{if(!name||!amount)return;setSaving(true);try{await onAdd({name,category:cat||"Прочее",amount:parseFloat(amount),frequency:freq,next_date:nextDate});setShowAdd(false);setName("");setCat("");setAmount("");setFreq("monthly");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name||!amount}>{saving?"...":"Добавить"}</Btn>
           </div>
         </Sheet>
       )}
@@ -823,7 +823,7 @@ export function CategoriesScreen({ categories,onAdd,onDelete }: {
         <div className="space-y-4">
           <div className="flex bg-muted rounded-xl p-1">{(["expense","income"] as TxType[]).map(t=><button key={t} onClick={()=>setType(t)} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${type===t?"bg-[var(--surface-2)] shadow-sm text-foreground":"text-muted-foreground"}`}>{t==="expense"?"Расход":"Доход"}</button>)}</div>
           <Field label="Название"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Категория..." autoFocus/></Field>
-          <Btn onClick={async()=>{if(!name)return;setSaving(true);await onAdd(name,type);setSaving(false);setShowAdd(false);setName("");}} disabled={saving||!name}>{saving?"...":"Добавить"}</Btn>
+          <Btn onClick={async()=>{if(!name)return;setSaving(true);try{await onAdd(name,type);setShowAdd(false);setName("");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name}>{saving?"...":"Добавить"}</Btn>
         </div>
       </Sheet>}
     </div>

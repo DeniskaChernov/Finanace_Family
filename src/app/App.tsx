@@ -227,40 +227,48 @@ export default function App() {
     }
   };
 
-  const deleteTransaction = async (id:string) => { await api.transactions.delete(id); setTransactions(prev=>prev.filter(t=>t.id!==id)); showToast('Операция удалена', 'info'); };
-  const addCategory = async (name:string, type:TxType) => { const c=await api.categories.create(name,type); setCategories(prev=>[...prev,c]); };
-  const deleteCategory = async (id:string) => { await api.categories.delete(id); setCategories(prev=>prev.filter(c=>c.id!==id)); };
-
-  const addGoal = async (g:any) => {
-    const goal=await api.goals.create(g); setGoals(prev=>[...prev,goal]);
-    await notify(`${userProfile?.name} создал цель`,`«${g.name}» — ${fmtUZS(g.target_amount)}`,"goal");
+  // Обёртка: показывает тост ошибки и пробрасывает её дальше
+  const guard = async <R,>(fn:()=>Promise<R>, errMsg:string):Promise<R> => {
+    try { return await fn(); }
+    catch (e:any) { showToast(e?.message || errMsg, 'error'); throw e; }
   };
-  const deleteGoal = async (id:string) => { await api.goals.delete(id); setGoals(prev=>prev.filter(g=>g.id!==id)); };
 
-  const updateAllocation = async (goalId:string, amount:number) => {
+  const deleteTransaction = (id:string) => guard(async()=>{ await api.transactions.delete(id); setTransactions(prev=>prev.filter(t=>t.id!==id)); showToast('Операция удалена', 'info'); }, 'Не удалось удалить операцию');
+  const addCategory = (name:string, type:TxType) => guard(async()=>{ const c=await api.categories.create(name,type); setCategories(prev=>[...prev,c]); showToast('Категория добавлена','success'); }, 'Не удалось добавить категорию');
+  const deleteCategory = (id:string) => guard(async()=>{ await api.categories.delete(id); setCategories(prev=>prev.filter(c=>c.id!==id)); }, 'Не удалось удалить категорию');
+
+  const addGoal = (g:any) => guard(async()=>{
+    const goal=await api.goals.create(g); setGoals(prev=>[...prev,goal]);
+    showToast('🎯 Цель создана','success');
+    await notify(`${userProfile?.name} создал цель`,`«${g.name}» — ${fmtUZS(g.target_amount)}`,"goal");
+  }, 'Не удалось создать цель');
+  const deleteGoal = (id:string) => guard(async()=>{ await api.goals.delete(id); setGoals(prev=>prev.filter(g=>g.id!==id)); showToast('Цель удалена','info'); }, 'Не удалось удалить цель');
+
+  const updateAllocation = (goalId:string, amount:number) => guard(async()=>{
     const res=await api.goals.updateAllocation(goalId,amount);
     setGoals(prev=>prev.map(g=>{
       if(g.id!==goalId) return g;
       if(g.allocated<g.target_amount&&amount>=g.target_amount&&g.target_amount>0) notify("🎯 Цель достигнута!",`«${g.name}» полностью накоплена`,"goal");
       return {...g,allocated:res.amount};
     }));
-  };
+  }, 'Не удалось обновить накопления');
 
-  const updateSettings = async (s:Partial<AppSettings>) => { const u=await api.settings.update(s); setSettings(u); };
-  const markNotifRead = (id:string) => { api.notifications.markRead(id); setNotifications(prev=>prev.map(n=>n.id===id?{...n,read:true}:n)); };
-  const markAllNotifRead = () => { api.notifications.markAllRead(); setNotifications(prev=>prev.map(n=>({...n,read:true}))); };
-  const addBudget = async (b:any) => { const bud=await api.budgets.create(b); setBudgets(prev=>[...prev,bud]); };
-  const deleteBudget = async (id:string) => { await api.budgets.delete(id); setBudgets(prev=>prev.filter(b=>b.id!==id)); };
-  const addRecurring = async (p:any) => { const r=await api.recurring.create(p); setRecurringPayments(prev=>[...prev,r]); };
-  const deleteRecurring = async (id:string) => { await api.recurring.delete(id); setRecurringPayments(prev=>prev.filter(r=>r.id!==id)); };
+  const updateSettings = (s:Partial<AppSettings>) => guard(async()=>{ const u=await api.settings.update(s); setSettings(u); showToast('Настройки сохранены','success'); }, 'Не удалось сохранить настройки');
+  const markNotifRead = (id:string) => { api.notifications.markRead(id).catch(()=>{}); setNotifications(prev=>prev.map(n=>n.id===id?{...n,read:true}:n)); };
+  const markAllNotifRead = () => { api.notifications.markAllRead().catch(()=>{}); setNotifications(prev=>prev.map(n=>({...n,read:true}))); };
+  const addBudget = (b:any) => guard(async()=>{ const bud=await api.budgets.create(b); setBudgets(prev=>[...prev,bud]); showToast('Бюджет создан','success'); }, 'Не удалось создать бюджет');
+  const deleteBudget = (id:string) => guard(async()=>{ await api.budgets.delete(id); setBudgets(prev=>prev.filter(b=>b.id!==id)); }, 'Не удалось удалить бюджет');
+  const addRecurring = (p:any) => guard(async()=>{ const r=await api.recurring.create(p); setRecurringPayments(prev=>[...prev,r]); showToast('Платёж добавлен','success'); }, 'Не удалось добавить платёж');
+  const deleteRecurring = (id:string) => guard(async()=>{ await api.recurring.delete(id); setRecurringPayments(prev=>prev.filter(r=>r.id!==id)); }, 'Не удалось удалить платёж');
 
-  const markRecurringPaid = async (id:string) => {
+  const markRecurringPaid = (id:string) => guard(async()=>{
     const p=recurringPayments.find(r=>r.id===id); if(!p) return;
     const nextDate=nextDateForFrequency(p.frequency,new Date(p.next_date));
     const updated=await api.recurring.markPaid(id,nextDate);
     setRecurringPayments(prev=>prev.map(r=>r.id===id?updated:r));
     await saveTransaction({type:"expense",category:p.category,amount:p.amount,currency:"UZS",date:p.next_date,description:p.name,receipt_url:null});
-  };
+    showToast('Платёж отмечен оплаченным','success');
+  }, 'Не удалось отметить платёж');
 
   const logout = () => {
     localStorage.removeItem("fb_token"); localStorage.removeItem("fb_session");
