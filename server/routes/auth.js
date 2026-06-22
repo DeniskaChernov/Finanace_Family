@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'family-budget-secret-2024';
@@ -60,7 +61,7 @@ router.get('/me', async (req, res) => {
 });
 
 // GET /api/auth/family-members
-router.get('/family-members', async (req, res) => {
+router.get('/family-members', authMiddleware, async (req, res) => {
   const fid = req.user?.family_id;
   if (!fid) return res.status(401).json({ error: 'Не авторизован' });
   try {

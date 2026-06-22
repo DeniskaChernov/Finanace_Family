@@ -179,13 +179,22 @@ export default function App() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [txs,cats,gls,sets,notifs,recurs,buds,members] = await Promise.all([
+      // allSettled: сбой одного эндпоинта не обнуляет ВСЕ данные
+      const [txs,cats,gls,sets,notifs,recurs,buds,members] = await Promise.allSettled([
         api.transactions.list(), api.categories.list(), api.goals.list(),
         api.settings.get(), api.notifications.list(), api.recurring.list(),
         api.budgets.list(), api.auth.familyMembers(),
       ]);
-      setTransactions(txs); setCategories(cats); setGoals(gls); setSettings(sets);
-      setNotifications(notifs); setRecurringPayments(recurs); setBudgets(buds); setFamilyMembers(members);
+      if(txs.status==="fulfilled") setTransactions(txs.value);
+      if(cats.status==="fulfilled") setCategories(cats.value);
+      if(gls.status==="fulfilled") setGoals(gls.value);
+      if(sets.status==="fulfilled") setSettings(sets.value);
+      if(notifs.status==="fulfilled") setNotifications(notifs.value);
+      if(recurs.status==="fulfilled") setRecurringPayments(recurs.value);
+      if(buds.status==="fulfilled") setBudgets(buds.value);
+      if(members.status==="fulfilled") setFamilyMembers(members.value);
+      const failed=[txs,cats,gls,sets,notifs,recurs,buds,members].filter(r=>r.status==="rejected");
+      if(failed.length) console.error("loadAll: часть запросов не удалась", failed);
     } catch(e) { console.error("loadAll", e); }
     finally { setLoading(false); }
   };
