@@ -286,12 +286,13 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
   });
   const totalIncome=transactions.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const totalExpense=transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
-  const avgCheck=transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0)/Math.max(1,transactions.filter(t=>t.type==="expense").length);
+  const uzs=(t:Transaction)=>toUZS(t.amount,t.currency??"UZS",usdRate);
+  const avgCheck=transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+uzs(t),0)/Math.max(1,transactions.filter(t=>t.type==="expense").length);
   const expByCat:Record<string,number>={};
-  transactions.filter(t=>t.type==="expense").forEach(t=>{expByCat[t.category]=(expByCat[t.category]??0)+t.amount;});
+  transactions.filter(t=>t.type==="expense").forEach(t=>{expByCat[t.category]=(expByCat[t.category]??0)+uzs(t);});
   const topExpenses=Object.entries(expByCat).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value).slice(0,6);
   const expByUser:Record<string,number>={};
-  transactions.filter(t=>t.type==="expense").forEach(t=>{expByUser[t.created_by_name]=(expByUser[t.created_by_name]??0)+t.amount;});
+  transactions.filter(t=>t.type==="expense").forEach(t=>{expByUser[t.created_by_name]=(expByUser[t.created_by_name]??0)+uzs(t);});
   const catFreq:Record<string,number>={};
   transactions.forEach(t=>{catFreq[t.category]=(catFreq[t.category]??0)+1;});
   const topFreq=Object.entries(catFreq).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -609,11 +610,12 @@ export function MonthlyReportScreen({ transactions,usdRate }: { transactions:Tra
   const [reportMonth,setReportMonth]=useState(addMonths(monthKey(),-1));
   const [y,m]=reportMonth.split("-").map(Number);
   const txs=transactions.filter(t=>t.date.startsWith(reportMonth));
-  const income=txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-  const expense=txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const uzs=(t:Transaction)=>toUZS(t.amount,t.currency??"UZS",usdRate);
+  const income=txs.filter(t=>t.type==="income").reduce((s,t)=>s+uzs(t),0);
+  const expense=txs.filter(t=>t.type==="expense").reduce((s,t)=>s+uzs(t),0);
   const balance=income-expense;
   const expByCat:Record<string,number>={};
-  txs.filter(t=>t.type==="expense").forEach(t=>{expByCat[t.category]=(expByCat[t.category]??0)+t.amount;});
+  txs.filter(t=>t.type==="expense").forEach(t=>{expByCat[t.category]=(expByCat[t.category]??0)+uzs(t);});
   const topCats=Object.entries(expByCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const worstCat=topCats[0]; const bestCat=topCats[topCats.length-1];
   const exportExcel=async()=>{
