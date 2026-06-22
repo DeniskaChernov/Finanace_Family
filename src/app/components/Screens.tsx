@@ -241,7 +241,7 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
       {fundGoalId&&onUpdateAllocation&&(()=>{const g=goals.find(x=>x.id===fundGoalId)!; return g?(
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={()=>setFundGoalId(null)}/>
-          <div className="relative rounded-t-3xl p-5 pb-8" style={{background:"var(--card)",boxShadow:"0 -8px 40px rgba(0,0,0,0.3)"}}>
+          <div className="relative rounded-t-3xl p-5 sheet-safe" style={{background:"var(--card)",boxShadow:"0 -8px 40px rgba(0,0,0,0.3)"}}>
             <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4"/>
             <h3 className="text-base font-bold mb-1">💎 {g.name}</h3>
             <p className="text-xs text-muted-foreground mb-4">Цель: {fmtUZS(g.target_amount)}</p>

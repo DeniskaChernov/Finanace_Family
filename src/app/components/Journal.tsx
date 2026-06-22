@@ -187,7 +187,7 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
         </div>
 
         {/* Скроллируемый контент */}
-        <div className="overflow-y-auto px-5 pb-6 space-y-4 flex-1">
+        <div className="overflow-y-auto px-5 sheet-safe space-y-4 flex-1">
           {/* Большое поле суммы */}
           <div className="rounded-2xl p-4" style={{background:accentColor+"15",border:`1.5px solid ${accentColor}30`}}>
             <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{color:accentColor}}>Сумма</p>
@@ -368,7 +368,7 @@ export function JournalScreen({ transactions,categories,onSave,onDelete,currentU
       )}
 
       {/* FAB */}
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2">
+      <div className="fixed fab-safe right-4 z-50 flex flex-col items-end gap-2">
         {showSheet && !editing && (
           <>
             <button onClick={()=>{setEditing({type:"income"} as any);}} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold shadow-lg active:scale-95 transition-all" style={{background:"#10b981",boxShadow:"0 4px 20px rgba(16,185,129,0.4)"}}>

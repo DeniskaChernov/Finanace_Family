@@ -40,7 +40,7 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Удалить',
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel}/>
-      <div className="relative w-full max-w-md rounded-t-3xl p-6 animate-in"
+      <div className="relative w-full max-w-md rounded-t-3xl p-6 sheet-safe animate-in"
         style={{background:'var(--card)',boxShadow:'0 -8px 40px rgba(0,0,0,0.3)'}}>
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4"/>
         <div className="flex items-center gap-3 mb-2">
@@ -92,7 +92,7 @@ export function Sheet({ open = true, onClose, title, children }: {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative rounded-t-3xl p-5 pb-10 max-h-[92dvh] overflow-y-auto animate-in"
+      <div className="relative rounded-t-3xl p-5 sheet-safe max-h-[92dvh] overflow-y-auto animate-in"
         style={{ background: 'var(--card-solid)', borderTop: '1px solid var(--border)', boxShadow: '0 -16px 50px rgba(0,0,0,0.6)' }}>
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
         {title && <h2 className="text-lg font-bold mb-5">{title}</h2>}

@@ -331,8 +331,8 @@ export default function App() {
         <div className="float-orb absolute top-1/3 -left-24 w-60 h-60 rounded-full opacity-[0.10] blur-3xl" style={{ background: '#a855f7', animationDelay: '4s' }} />
         <div className="float-orb absolute bottom-10 right-0 w-52 h-52 rounded-full opacity-[0.06] blur-3xl" style={{ background: '#22d3ee', animationDelay: '8s' }} />
       </div>
-      <div className="relative pb-24 min-h-dvh overflow-y-auto"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>{renderScreen()}</div>
+      <div className="relative min-h-dvh overflow-y-auto"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>{renderScreen()}</div>
       <BottomNav active={activeTab} onChange={t=>{if(t!=="more")setMoreDefaultSection(undefined);setActiveTab(t);}} unreadNotif={unreadNotif} profileName={userProfile.name}/>
       {toast && <Toast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
       <InstallPrompt/>

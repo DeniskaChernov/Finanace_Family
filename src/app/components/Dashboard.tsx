@@ -41,7 +41,7 @@ function AddFab({ onAdd }: { onAdd: (type: "income"|"expense") => void }) {
   return (
     <>
       {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2">
+      <div className="fixed fab-safe right-4 z-50 flex flex-col items-end gap-2">
         {open && (
           <>
             <button onClick={() => { setOpen(false); onAdd("income"); }}
