@@ -23,23 +23,32 @@ export function useCountUp(target: number, duration = 900) {
 }
 
 // ── 3D tilt-обёртка (наклон по касанию + гироскоп) ──────────────────
+// Применяет transform НАПРЯМУЮ к DOM через ref + rAF — без setState,
+// поэтому не вызывает перерисовку React-дерева на каждое движение.
 export function Tilt3D({ children, className = "", max = 10, glare = true }: {
   children: ReactNode; className?: string; max?: number; glare?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [style, setStyle] = useState<React.CSSProperties>({});
-  const [glarePos, setGlarePos] = useState({ x: 50, y: 0, o: 0 });
+  const glareRef = useRef<HTMLDivElement>(null);
+  const raf = useRef<number>();
 
   const apply = (px: number, py: number) => {
-    // px, py в диапазоне -0.5..0.5
-    const ry = px * max * 2;
-    const rx = -py * max * 2;
-    setStyle({ transform: `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02)` });
-    setGlarePos({ x: 50 + px * 100, y: 50 + py * 100, o: 0.25 });
+    if (raf.current) return; // коалесцируем до одного кадра
+    raf.current = requestAnimationFrame(() => {
+      raf.current = undefined;
+      const el = ref.current; if (!el) return;
+      const ry = px * max * 2;
+      const rx = -py * max * 2;
+      el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02)`;
+      if (glareRef.current) {
+        glareRef.current.style.background = `radial-gradient(circle at ${50 + px * 100}% ${50 + py * 100}%, rgba(255,255,255,0.25), transparent 55%)`;
+        glareRef.current.style.opacity = "1";
+      }
+    });
   };
   const reset = () => {
-    setStyle({ transform: "perspective(900px) rotateX(0) rotateY(0) scale(1)" });
-    setGlarePos(g => ({ ...g, o: 0 }));
+    const el = ref.current; if (el) el.style.transform = "perspective(900px) rotateX(0) rotateY(0) scale(1)";
+    if (glareRef.current) glareRef.current.style.opacity = "0";
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -48,7 +57,7 @@ export function Tilt3D({ children, className = "", max = 10, glare = true }: {
     apply((e.clientX - r.left) / r.width - 0.5, (e.clientY - r.top) / r.height - 0.5);
   };
 
-  // гироскоп на телефоне
+  // гироскоп на телефоне (тоже через rAF-коалесинг, без setState)
   useEffect(() => {
     const handler = (e: DeviceOrientationEvent) => {
       if (e.gamma == null || e.beta == null) return;
@@ -57,14 +66,13 @@ export function Tilt3D({ children, className = "", max = 10, glare = true }: {
       apply(px * 0.6, py * 0.6);
     };
     window.addEventListener("deviceorientation", handler);
-    return () => window.removeEventListener("deviceorientation", handler);
+    return () => { window.removeEventListener("deviceorientation", handler); if (raf.current) cancelAnimationFrame(raf.current); };
   }, []);
 
   return (
     <div
       ref={ref}
       className={`card-3d relative ${className}`}
-      style={style}
       onPointerMove={onPointerMove}
       onPointerLeave={reset}
       onPointerCancel={reset}
@@ -72,11 +80,7 @@ export function Tilt3D({ children, className = "", max = 10, glare = true }: {
       {children}
       {glare && (
         <div className="absolute inset-0 rounded-[inherit] pointer-events-none overflow-hidden" style={{ borderRadius: "inherit" }}>
-          <div style={{
-            position: "absolute", inset: 0,
-            background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,${glarePos.o}), transparent 55%)`,
-            transition: "opacity 0.3s",
-          }} />
+          <div ref={glareRef} style={{ position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.3s" }} />
         </div>
       )}
     </div>
