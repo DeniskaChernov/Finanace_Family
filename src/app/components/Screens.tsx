@@ -6,7 +6,6 @@ import {
   Download, Copy, UserPlus, Sun, Moon,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
-import * as XLSX from "xlsx";
 import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle, ConfirmDialog } from "./ui";
 import { usePush } from "../../lib/usePush";
 import { api } from "../../lib/api";
@@ -615,7 +614,8 @@ export function MonthlyReportScreen({ transactions,usdRate }: { transactions:Tra
   txs.filter(t=>t.type==="expense").forEach(t=>{expByCat[t.category]=(expByCat[t.category]??0)+t.amount;});
   const topCats=Object.entries(expByCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const worstCat=topCats[0]; const bestCat=topCats[topCats.length-1];
-  const exportExcel=()=>{
+  const exportExcel=async()=>{
+    const XLSX=await import("xlsx");
     const wb=XLSX.utils.book_new();
     const data=[["Отчёт за",`${MONTHS_RU[m-1]} ${y}`],[""],["Показатель","Сумма"],["Доходы",income],["Расходы",expense],["Баланс",balance],[""],["Категория","Расходы"],...topCats.map(([c,v])=>[c,v])];
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),"Отчёт");
@@ -904,7 +904,8 @@ export function ExportScreen({ transactions,goals }: { transactions:Transaction[
     const blob=new Blob(["﻿"+rows.map(r=>r.join(";")).join("\n")],{type:"text/csv;charset=utf-8"});
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`бюджет_${new Date().toISOString().split("T")[0]}.csv`;a.click();
   };
-  const exportXlsx=()=>{
+  const exportXlsx=async()=>{
+    const XLSX=await import("xlsx");
     const wb=XLSX.utils.book_new();
     const td=[["Дата","Тип","Категория","Сумма","Описание","Автор"],...transactions.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>[t.date,t.type==="income"?"Доход":"Расход",t.category,t.amount,t.description,t.created_by_name])];
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(td),"Операции");

@@ -170,6 +170,7 @@ export async function migrate() {
     await client.query(`UPDATE transactions       SET family_id = 'fam-001' WHERE family_id IS NULL;`);
     await client.query(`UPDATE categories         SET family_id = 'fam-001' WHERE family_id IS NULL;`);
     await client.query(`UPDATE goals              SET family_id = 'fam-001' WHERE family_id IS NULL;`);
+    await client.query(`UPDATE goal_allocations   SET family_id = 'fam-001' WHERE family_id IS NULL;`);
     await client.query(`UPDATE budgets            SET family_id = 'fam-001' WHERE family_id IS NULL;`);
     await client.query(`UPDATE recurring_payments SET family_id = 'fam-001' WHERE family_id IS NULL;`);
 
