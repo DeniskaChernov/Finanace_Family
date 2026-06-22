@@ -75,9 +75,9 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
           <span className={`text-sm font-bold font-mono ${t.type==="income"?"text-emerald-400":"text-rose-400"}`}>
             {t.type==="income"?"+":"−"}{fmtMoney(t.amount,t.currency??"UZS")}
           </span>
-          <button onClick={handleExpand} className="text-muted-foreground hover:text-primary p-1"><MessageCircle size={13}/></button>
-          {t.user_id===currentUserId&&<button onClick={onEdit} className="text-muted-foreground hover:text-primary p-1"><Edit2 size={13}/></button>}
-          {t.user_id===currentUserId&&<button onClick={()=>setConfirmDelete(true)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>}
+          <button onClick={handleExpand} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary active:bg-muted"><MessageCircle size={15}/></button>
+          {t.user_id===currentUserId&&<button onClick={onEdit} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary active:bg-muted"><Edit2 size={15}/></button>}
+          {t.user_id===currentUserId&&<button onClick={()=>setConfirmDelete(true)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-rose-400 active:bg-muted"><Trash2 size={15}/></button>}
         </div>
       </div>
       {confirmDelete&&<ConfirmDialog title="Удалить операцию?" message={`${t.category} · ${fmtMoney(t.amount,t.currency??"UZS")}`} onConfirm={()=>{setConfirmDelete(false);onDelete();}} onCancel={()=>setConfirmDelete(false)}/>}
