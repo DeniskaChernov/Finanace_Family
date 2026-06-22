@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import * as XLSX from "xlsx";
 import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle, ConfirmDialog } from "./ui";
 import { usePush } from "../../lib/usePush";
+import { api } from "../../lib/api";
 import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
@@ -664,6 +665,36 @@ export function MonthlyReportScreen({ transactions,usdRate }: { transactions:Tra
 }
 
 // ── Settings ──────────────────────────────────────────────────────────
+function DbStatusCard() {
+  const [diag,setDiag]=useState<{hasDatabaseUrl:boolean;host:string|null;transactions:number|null;goals:number|null;error:string|null}|null>(null);
+  const [loading,setLoading]=useState(true);
+  const load=async()=>{ setLoading(true); try{ setDiag(await api.diag()); }catch(e:any){ setDiag({hasDatabaseUrl:false,host:null,transactions:null,goals:null,error:e?.message||"нет связи"}); } finally{ setLoading(false); } };
+  useEffect(()=>{ load(); },[]);
+  const persistent = diag?.hasDatabaseUrl && !diag?.error;
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-bold">🗄 Состояние базы данных</p>
+        <button onClick={load} className="text-xs text-primary font-bold">{loading?"...":"Обновить"}</button>
+      </div>
+      {loading&&!diag?<p className="text-xs text-muted-foreground">Проверка...</p>:diag&&(
+        <div className="space-y-1.5 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">DATABASE_URL</span><span className={diag.hasDatabaseUrl?"text-emerald-400 font-bold":"text-rose-400 font-bold"}>{diag.hasDatabaseUrl?"✓ задан":"✕ НЕ задан"}</span></div>
+          {diag.host&&<div className="flex justify-between"><span className="text-muted-foreground">Хост</span><span className="font-mono">{diag.host}</span></div>}
+          <div className="flex justify-between"><span className="text-muted-foreground">Транзакций в БД</span><span className="font-mono font-bold">{diag.transactions??"—"}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Целей в БД</span><span className="font-mono font-bold">{diag.goals??"—"}</span></div>
+          {diag.error&&<p className="text-rose-400 mt-1">Ошибка: {diag.error}</p>}
+          <div className={`mt-2 rounded-xl px-3 py-2 ${persistent?"bg-emerald-500/10 text-emerald-300":"bg-rose-500/10 text-rose-300"}`}>
+            {persistent
+              ? "✅ База подключена. Если число транзакций совпадает с тем, что вы добавляли — данные сохраняются."
+              : "⚠️ База не настроена. На Railway: New → Database → PostgreSQL, затем в приложении Variables → DATABASE_URL = ${{Postgres.DATABASE_URL}}"}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function SettingsScreen({ settings,onUpdate,darkMode,onToggleDark }: {
   settings:AppSettings; onUpdate:(s:Partial<AppSettings>)=>Promise<void>; darkMode:boolean; onToggleDark:()=>void;
 }) {
@@ -676,6 +707,8 @@ export function SettingsScreen({ settings,onUpdate,darkMode,onToggleDark }: {
     <div className="pb-4">
       <div className="px-4 pb-4"><h2 className="text-xl font-bold">Настройки</h2></div>
       <div className="px-4 space-y-3">
+
+        <DbStatusCard/>
 
         <Card className="p-4 flex flex-col gap-4">
           <Toggle checked={darkMode} onChange={onToggleDark} label={darkMode ? "🌙 Тёмная тема" : "☀️ Светлая тема"} />

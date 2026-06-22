@@ -31,6 +31,30 @@ app.use(express.json({ limit: '10mb' }));
 // Health check (no auth)
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+// Диагностика БД (no auth) — видно прямо в приложении, постоянна ли база
+app.get('/api/diag', async (req, res) => {
+  const info = {
+    hasDatabaseUrl: !!process.env.DATABASE_URL,
+    host: null,
+    transactions: null,
+    goals: null,
+    error: null,
+  };
+  try {
+    if (process.env.DATABASE_URL) {
+      info.host = new URL(process.env.DATABASE_URL).hostname;
+    }
+    const { default: pool } = await import('./db.js');
+    const t = await pool.query('SELECT COUNT(*)::int AS n FROM transactions');
+    const g = await pool.query('SELECT COUNT(*)::int AS n FROM goals');
+    info.transactions = t.rows[0].n;
+    info.goals = g.rows[0].n;
+  } catch (e) {
+    info.error = e.message;
+  }
+  res.json(info);
+});
+
 // Public routes
 app.use('/api/auth', authRouter);
 

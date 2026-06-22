@@ -27,6 +27,7 @@ const del = <T>(path: string) => req<T>('DELETE', path);
 
 // ── Auth ─────────────────────────────────────────────────────────
 export const api = {
+  diag: () => get<{ hasDatabaseUrl: boolean; host: string | null; transactions: number | null; goals: number | null; error: string | null }>('/diag'),
   auth: {
     login: (name: string, password: string) =>
       post<{ token: string; user: AppUser }>('/auth/login', { name, password }),
