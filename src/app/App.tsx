@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Home, FileText, PiggyBank, Target, User, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { api } from "../lib/api";
+import { ymd } from "../lib/date";
 import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency } from "../lib/api";
 import { Toast } from "./components/ui";
 import { InstallPrompt } from "./components/InstallPrompt";
@@ -25,7 +26,7 @@ const nextDateForFrequency = (freq:Frequency, from:Date=new Date()): string => {
   else if(freq==="weekly") d.setDate(d.getDate()+7);
   else if(freq==="monthly") d.setMonth(d.getMonth()+1);
   else d.setFullYear(d.getFullYear()+1);
-  return d.toISOString().split("T")[0];
+  return ymd(d);
 };
 
 function BottomNav({ active,onChange,unreadNotif,profileName }: { active:TabType; onChange:(t:TabType)=>void; unreadNotif:number; profileName:string }) {

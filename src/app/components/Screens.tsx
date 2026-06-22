@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle, ConfirmDialog } from "./ui";
 import { usePush } from "../../lib/usePush";
 import { api } from "../../lib/api";
+import { ymd } from "../../lib/date";
 import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
@@ -36,7 +37,7 @@ const nextDateForFrequency = (freq:Frequency,from:Date=new Date()): string => {
   else if(freq==="weekly") d.setDate(d.getDate()+7);
   else if(freq==="monthly") d.setMonth(d.getMonth()+1);
   else d.setFullYear(d.getFullYear()+1);
-  return d.toISOString().split("T")[0];
+  return ymd(d);
 };
 
 // ── Savings ──────────────────────────────────────────────────────────
@@ -440,7 +441,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
 }) {
   const [showAdd,setShowAdd]=useState(false);
   const [name,setName]=useState(""); const [cat,setCat]=useState(""); const [amount,setAmount]=useState("");
-  const [freq,setFreq]=useState<Frequency>("monthly"); const [nextDate,setNextDate]=useState(new Date().toISOString().split("T")[0]);
+  const [freq,setFreq]=useState<Frequency>("monthly"); const [nextDate,setNextDate]=useState(ymd());
   const [saving,setSaving]=useState(false);
   const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
   const sorted=[...payments].filter(p=>p.active).sort((a,b)=>a.next_date.localeCompare(b.next_date));
@@ -902,7 +903,7 @@ export function ExportScreen({ transactions,goals }: { transactions:Transaction[
   const exportCSV=()=>{
     const rows=[["Дата","Тип","Категория","Сумма","Описание","Автор"],...transactions.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>[t.date,t.type==="income"?"Доход":"Расход",t.category,t.amount,t.description,t.created_by_name])];
     const blob=new Blob(["﻿"+rows.map(r=>r.join(";")).join("\n")],{type:"text/csv;charset=utf-8"});
-    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`бюджет_${new Date().toISOString().split("T")[0]}.csv`;a.click();
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`бюджет_${ymd()}.csv`;a.click();
   };
   const exportXlsx=async()=>{
     const XLSX=await import("xlsx");
@@ -911,7 +912,7 @@ export function ExportScreen({ transactions,goals }: { transactions:Transaction[
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(td),"Операции");
     const gd=[["Цель","Нужно","Накоплено","Осталось","%"],...goals.map(g=>[g.name,g.target_amount,g.allocated,Math.max(0,g.target_amount-g.allocated),g.target_amount>0?Math.round((g.allocated/g.target_amount)*100):0])];
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gd),"Цели");
-    XLSX.writeFile(wb,`бюджет_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb,`бюджет_${ymd()}.xlsx`);
   };
   return (
     <div className="pb-4"><div className="px-4 pb-4"><h2 className="text-xl font-bold">Экспорт данных</h2></div>

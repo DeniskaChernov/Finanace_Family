@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Field, Input, Select, ConfirmDialog } from "./ui";
 import { api } from "../../lib/api";
+import { ymd } from "../../lib/date";
 import type { Transaction, Category, Comment, Currency, TxType } from "../../lib/api";
 
 const MONTHS_RU = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
@@ -120,7 +121,7 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
   const [currency,setCurrency] = useState<Currency>(initial?.currency??"UZS");
   const [category,setCategory] = useState(initial?.category??"");
   const [amount,setAmount] = useState(initial?String(initial.amount):"");
-  const [date,setDate] = useState(initial?.date??new Date().toISOString().split("T")[0]);
+  const [date,setDate] = useState(initial?.date??ymd());
   const [desc,setDesc] = useState(initial?.description??"");
   const [receiptUrl,setReceiptUrl] = useState<string|null>(initial?.receipt_url??null);
   const [uploading,setUploading] = useState(false);
