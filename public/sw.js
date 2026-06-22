@@ -1,4 +1,4 @@
-const CACHE = 'fb-v1';
+const CACHE = 'fb-v2';
 const PRECACHE = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
@@ -15,15 +15,29 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  if (e.request.url.includes('/api/')) return;
+  const url = new URL(e.request.url);
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Навигация/HTML → network-first: после деплоя всегда свежий index.html
+  // (он ссылается на новые хешированные ассеты). Кэш — только запасной офлайн.
+  if (e.request.mode === 'navigate' || e.request.destination === 'document') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) caches.open(CACHE).then(c => c.put('/index.html', res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(e.request).then(c => c || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // Прочие GET (хешированные JS/CSS/иконки — неизменяемы) → cache-first
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fresh = fetch(e.request).then(res => {
-        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        return res;
-      });
-      return cached || fresh;
-    })
+    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+      if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+      return res;
+    }))
   );
 });
 
