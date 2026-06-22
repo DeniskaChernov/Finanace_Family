@@ -299,10 +299,10 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
     <div className="pb-4 space-y-4">
       <div className="px-4"><h2 className="text-xl font-bold">Аналитика</h2></div>
       <div className="px-4 grid grid-cols-2 gap-3">
-        <StatCard label="Всего доходов" value={fmtUZS(totalIncome)} color="text-emerald-400"/>
-        <StatCard label="Всего расходов" value={fmtUZS(totalExpense)} color="text-rose-400"/>
+        <StatCard label="Всего доходов" value={fmtUZS(totalIncome)} accent="#34D399"/>
+        <StatCard label="Всего расходов" value={fmtUZS(totalExpense)} accent="#FB7185"/>
         <StatCard label="Средний чек" value={fmtUZS(avgCheck)} sub="расход"/>
-        <StatCard label="Накоплено" value={fmtUZS(totalIncome-totalExpense)} color="text-indigo-400"/>
+        <StatCard label="Накоплено" value={fmtUZS(totalIncome-totalExpense)} accent="#818CF8"/>
       </div>
       <Card className="p-4 mx-4">
         <SectionHeader title="Динамика доходов и расходов"/>
