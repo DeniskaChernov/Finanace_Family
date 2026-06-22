@@ -14,6 +14,13 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
+    // Протухшая/невалидная сессия (кроме самого входа) → выход на экран логина,
+    // чтобы пользователь не застревал с пустыми данными.
+    if (res.status === 401 && path !== '/auth/login' && getToken()) {
+      localStorage.removeItem('fb_token');
+      localStorage.removeItem('fb_session');
+      location.reload();
+    }
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'Ошибка запроса');
   }

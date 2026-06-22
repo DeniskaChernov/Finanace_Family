@@ -364,16 +364,17 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
 }
 
 // ── Budgets ───────────────────────────────────────────────────────────
-export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete }: {
+export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete,usdRate=12700 }: {
   budgets:Budget[]; transactions:Transaction[]; categories:Category[];
-  onAdd:(b:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
+  onAdd:(b:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>; usdRate?:number;
 }) {
   const [showAdd,setShowAdd]=useState(false);
   const [cat,setCat]=useState(""); const [limit,setLimit]=useState(""); const [saving,setSaving]=useState(false);
   const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
   const mk=monthKey();
   const expCats=categories.filter(c=>c.type==="expense");
-  const getSpent=(category:string)=>transactions.filter(t=>t.type==="expense"&&t.category===category&&t.date.startsWith(mk)).reduce((s,t)=>s+t.amount,0);
+  // Конвертируем в сумы — иначе трата в USD считается по номиналу и занижает расход
+  const getSpent=(category:string)=>transactions.filter(t=>t.type==="expense"&&t.category===category&&t.date.startsWith(mk)).reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const monthBudgets=budgets.filter(b=>b.month===mk);
   return (
     <div className="pb-4">

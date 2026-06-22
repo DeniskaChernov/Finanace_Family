@@ -90,7 +90,7 @@ function MoreScreen(props: {
   if(section==="profile") return <div><Back title="Профиль"/><ProfileScreen userProfile={props.userProfile} onLogout={props.onLogout}/></div>;
   if(section==="family") return <div><Back title="Семья"/><FamilyScreen members={props.familyMembers} currentUser={props.userProfile}/></div>;
   if(section==="analytics") return <div><Back title="Аналитика"/><AnalyticsScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
-  if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onDelete={props.onBudgetDelete}/></div>;
+  if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onDelete={props.onBudgetDelete} usdRate={props.usdRate}/></div>;
   if(section==="recurring") return <div><Back title="Регулярные платежи"/><RecurringScreen payments={props.recurringPayments} categories={props.categories} userName={props.userProfile.name} onAdd={props.onRecurringAdd} onDelete={props.onRecurringDelete} onMarkPaid={props.onRecurringMarkPaid}/></div>;
   if(section==="calendar") return <div><Back title="Финансовый календарь"/><CalendarScreen transactions={props.transactions} recurringPayments={props.recurringPayments}/></div>;
   if(section==="report") return <div><Back title="Ежемесячный отчёт"/><MonthlyReportScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
@@ -215,7 +215,8 @@ export default function App() {
           const mk = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
           const budget = budgets.find(b=>b.category===t.category&&b.month===mk);
           if(budget) {
-            const spent = transactions.filter(tx=>tx.type==="expense"&&tx.category===t.category&&tx.date.startsWith(mk)).reduce((s,tx)=>s+tx.amount,0) + t.amount;
+            const rate = settings.usd_rate;
+            const spent = transactions.filter(tx=>tx.type==="expense"&&tx.category===t.category&&tx.date.startsWith(mk)).reduce((s,tx)=>s+toUZS(tx.amount,tx.currency??"UZS",rate),0) + toUZS(t.amount,t.currency??"UZS",rate);
             const pct = Math.round((spent/budget.month_limit)*100);
             if(spent>budget.month_limit) showToast(`⚠️ Бюджет "${t.category}" превышен! ${fmtUZS(spent)} из ${fmtUZS(budget.month_limit)}`,'warning');
             else if(pct>=80) showToast(`⚠️ Бюджет "${t.category}" использован на ${pct}%`,'warning');
