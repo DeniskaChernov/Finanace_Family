@@ -136,10 +136,10 @@ export function SavingsScreen({ transactions,usdRate }: { transactions:Transacti
 }
 
 // ── Goals ─────────────────────────────────────────────────────────────
-export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocation }: {
+export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocation,usdRate=12700 }: {
   goals:Goal[]; transactions:Transaction[];
   onAdd:(g:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
-  onUpdateAllocation?:(id:string,amt:number)=>Promise<void>;
+  onUpdateAllocation?:(id:string,amt:number)=>Promise<void>; usdRate?:number;
 }) {
   const [showAdd,setShowAdd]=useState(false);
   const [name,setName]=useState(""); const [target,setTarget]=useState("");
@@ -152,8 +152,8 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
   const months3=Array.from({length:3},(_,i)=>monthKey(new Date(now.getFullYear(),now.getMonth()-2+i,1)));
   const avgMonthlySavings=months3.reduce((s,mk)=>{
     const txs=transactions.filter(t=>t.date.startsWith(mk));
-    const inc=txs.filter(t=>t.type==="income").reduce((a,t)=>a+t.amount,0);
-    const exp=txs.filter(t=>t.type==="expense").reduce((a,t)=>a+t.amount,0);
+    const inc=txs.filter(t=>t.type==="income").reduce((a,t)=>a+toUZS(t.amount,t.currency??"UZS",usdRate),0);
+    const exp=txs.filter(t=>t.type==="expense").reduce((a,t)=>a+toUZS(t.amount,t.currency??"UZS",usdRate),0);
     return s+(inc-exp);
   },0)/3;
   const sorted=[...goals].sort((a,b)=>({high:0,medium:1,low:2}[a.priority])-({high:0,medium:1,low:2}[b.priority]));

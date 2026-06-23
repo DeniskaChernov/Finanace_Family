@@ -318,7 +318,7 @@ export default function App() {
       case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
       case "journal": return <JournalScreen transactions={transactions} categories={categories} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
       case "savings": return <SavingsScreen transactions={transactions} usdRate={settings.usd_rate}/>;
-      case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation}/>;
+      case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation} usdRate={settings.usd_rate}/>;
       case "more": return <MoreScreen {...moreProps}/>;
     }
   };
