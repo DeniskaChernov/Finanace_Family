@@ -162,7 +162,7 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
             <div className="absolute top-0 right-0 w-52 h-52 rounded-full opacity-15 blur-2xl" style={{background:"white",transform:"translate(35%,-35%)"}}/>
             <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 blur-2xl" style={{background:"#22d3ee",transform:"translate(-30%,40%)"}}/>
             <p className="text-xs opacity-75 mb-2 relative uppercase tracking-widest font-semibold">Баланс за месяц</p>
-            <p className="font-display relative leading-none" style={{fontSize:"2.6rem",textShadow:"0 2px 20px rgba(0,0,0,0.25)"}}>
+            <p className="font-display relative leading-none" style={{fontSize:"clamp(1.5rem, 8vw, 2.5rem)",textShadow:"0 2px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
               {balance>=0?"+":"−"}{fmtUZS(Math.abs(balanceAnim))}
             </p>
             <div className="flex gap-3 mt-6 relative">

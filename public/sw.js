@@ -1,4 +1,4 @@
-const CACHE = 'fb-v2';
+const CACHE = 'fb-v3';
 const PRECACHE = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
