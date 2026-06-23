@@ -19,13 +19,35 @@ const monthKey = (d=new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).
 const addMonths = (mk:string,d:number) => { const [y,m]=mk.split("-").map(Number); const dt=new Date(y,m-1+d,1); return monthKey(dt); };
 const timeAgo = (ts:string) => { const d=Date.now()-new Date(ts).getTime(); if(d<60000) return "только что"; if(d<3600000) return `${Math.floor(d/60000)} мин. назад`; if(d<86400000) return `${Math.floor(d/3600000)} ч. назад`; return `${Math.floor(d/86400000)} дн. назад`; };
 
+// Сжимаем фото чека перед сохранением: ресайз до 1200px + JPEG,
+// иначе фото с камеры (несколько МБ) раздувает БД и каждый ответ списка.
 async function uploadReceipt(file: File): Promise<string|null> {
-  return new Promise(resolve => {
+  const dataUrl = await new Promise<string|null>(resolve => {
     const reader = new FileReader();
     reader.onload = ev => resolve(ev.target?.result as string ?? null);
     reader.onerror = () => resolve(null);
     reader.readAsDataURL(file);
   });
+  if (!dataUrl) return null;
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = dataUrl;
+    });
+    const MAX = 1200;
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } catch {
+    return dataUrl; // если что-то пошло не так — сохраняем оригинал
+  }
 }
 
 function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
