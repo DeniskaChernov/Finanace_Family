@@ -3,7 +3,7 @@ import {
   PiggyBank, Target, CheckCircle, Trash2, Plus, Clock, Calendar,
   BarChart2, Repeat, Tag, Bell, Users, Crown, LogOut, Shield,
   ChevronLeft, ChevronRight, AlertTriangle, AlertCircle, Wallet,
-  Download, Copy, UserPlus, Sun, Moon,
+  Download, Copy, UserPlus, Sun, Moon, Pencil,
 } from "lucide-react";
 import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle, ConfirmDialog } from "./ui";
 import { usePush } from "../../lib/usePush";
@@ -136,18 +136,21 @@ export function SavingsScreen({ transactions,usdRate }: { transactions:Transacti
 }
 
 // ── Goals ─────────────────────────────────────────────────────────────
-export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocation,usdRate=12700 }: {
+export function GoalsScreen({ goals,transactions,onAdd,onEdit,onDelete,onUpdateAllocation,usdRate=12700 }: {
   goals:Goal[]; transactions:Transaction[];
-  onAdd:(g:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
+  onAdd:(g:any)=>Promise<void>; onEdit?:(id:string,g:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
   onUpdateAllocation?:(id:string,amt:number)=>Promise<void>; usdRate?:number;
 }) {
   const [showAdd,setShowAdd]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
   const [name,setName]=useState(""); const [target,setTarget]=useState("");
   const [deadline,setDeadline]=useState(""); const [note,setNote]=useState("");
   const [priority,setPriority]=useState<Priority>("medium"); const [saving,setSaving]=useState(false);
   const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
   const [fundGoalId,setFundGoalId]=useState<string|null>(null);
   const [fundAmount,setFundAmount]=useState("");
+  const resetForm=()=>{setEditingId(null);setName("");setTarget("");setDeadline("");setNote("");setPriority("medium");};
+  const openEdit=(g:Goal)=>{setEditingId(g.id);setName(g.name);setTarget(String(g.target_amount));setDeadline(g.deadline||"");setNote(g.note||"");setPriority(g.priority);setShowAdd(true);};
   const now=new Date();
   const months3=Array.from({length:3},(_,i)=>monthKey(new Date(now.getFullYear(),now.getMonth()-2+i,1)));
   const avgMonthlySavings=months3.reduce((s,mk)=>{
@@ -163,7 +166,7 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
     <div className="pb-24">
       <div className="px-4 pb-4 flex items-center justify-between">
         <h2 className="text-xl font-bold">Финансовые цели</h2>
-        <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
+        <button onClick={()=>{resetForm();setShowAdd(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
       </div>
       {goals.length>0&&(
         <Card className="p-4 mx-4 mb-4">
@@ -195,7 +198,10 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
                     <h3 className="font-bold truncate">{g.name}</h3>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${pc.bg} ${pc.color}`}>{pc.label}</span>
                   </div>
-                  <button onClick={()=>setConfirmDeleteId(g.id)} className="text-muted-foreground hover:text-rose-400 ml-2 p-1"><Trash2 size={14}/></button>
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    {onEdit&&<button onClick={()=>openEdit(g)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary active:bg-muted"><Pencil size={14}/></button>}
+                    <button onClick={()=>setConfirmDeleteId(g.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-rose-400 active:bg-muted"><Trash2 size={14}/></button>
+                  </div>
                 </div>
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
@@ -256,7 +262,7 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
         </div>
       ):null;})()}
       {showAdd&&(
-        <Sheet title="Новая цель" onClose={()=>setShowAdd(false)}>
+        <Sheet title={editingId?"Редактировать цель":"Новая цель"} onClose={()=>{setShowAdd(false);resetForm();}}>
           <div className="space-y-4">
             <Field label="Название"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Отпуск, машина..." autoFocus/></Field>
             <Field label="Сумма цели"><Input type="number" value={target} onChange={e=>setTarget(e.target.value)} placeholder="0" inputMode="decimal"/></Field>
@@ -267,7 +273,7 @@ export function GoalsScreen({ goals,transactions,onAdd,onDelete,onUpdateAllocati
             </Field>
             <Field label="Дедлайн (необязательно)"><Input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}/></Field>
             <Field label="Заметка"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Необязательно"/></Field>
-            <Btn onClick={async()=>{if(!name||!target)return;setSaving(true);try{await onAdd({name,target_amount:parseFloat(target),deadline:deadline||undefined,note:note||undefined,priority});setShowAdd(false);setName("");setTarget("");setDeadline("");setNote("");setPriority("medium");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name||!target}>{saving?"...":"Создать цель"}</Btn>
+            <Btn onClick={async()=>{if(!name||!target)return;setSaving(true);try{const payload={name,target_amount:parseFloat(target),deadline:deadline||undefined,note:note||undefined,priority};if(editingId&&onEdit){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);resetForm();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name||!target}>{saving?"...":editingId?"Сохранить":"Создать цель"}</Btn>
           </div>
         </Sheet>
       )}

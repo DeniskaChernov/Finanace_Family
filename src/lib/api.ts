@@ -61,6 +61,7 @@ export const api = {
   goals: {
     list: () => get<Goal[]>('/goals'),
     create: (g: GoalPayload) => post<Goal>('/goals', g),
+    update: (id: string, g: GoalPayload) => put<Goal>(`/goals/${id}`, g),
     delete: (id: string) => del<{ ok: boolean }>(`/goals/${id}`),
     updateAllocation: (goalId: string, amount: number) =>
       put<{ ok: boolean; amount: number }>(`/goals/allocations/${goalId}`, { amount }),

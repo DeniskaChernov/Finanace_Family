@@ -36,6 +36,22 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+router.put('/:id', async (req, res) => {
+  const { family_id } = req.user;
+  const { name, target_amount, target_currency = 'UZS', deadline, note, priority = 'medium' } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE goals SET name=$1,target_amount=$2,target_currency=$3,deadline=$4,note=$5,priority=$6
+       WHERE id=$7 AND family_id=$8 RETURNING *`,
+      [name, target_amount, target_currency, deadline || null, note || null, priority, req.params.id, family_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Не найдено' });
+    const { rows: allocs } = await pool.query('SELECT amount FROM goal_allocations WHERE goal_id=$1', [req.params.id]);
+    const allocated = allocs.reduce((s, a) => s + Number(a.amount), 0);
+    res.json({ ...rows[0], allocated });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.delete('/:id', async (req, res) => {
   const { family_id } = req.user;
   try {

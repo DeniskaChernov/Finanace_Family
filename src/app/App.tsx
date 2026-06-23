@@ -253,6 +253,11 @@ export default function App() {
     showToast('🎯 Цель создана','success');
     await notify(`${userProfile?.name} создал цель`,`«${g.name}» — ${fmtUZS(g.target_amount)}`,"goal");
   }, 'Не удалось создать цель');
+  const updateGoal = (id:string, g:any) => guard(async()=>{
+    const updated=await api.goals.update(id,g);
+    setGoals(prev=>prev.map(x=>x.id===id?updated:x));
+    showToast('Цель обновлена','success');
+  }, 'Не удалось обновить цель');
   const deleteGoal = (id:string) => guard(async()=>{ await api.goals.delete(id); setGoals(prev=>prev.filter(g=>g.id!==id)); showToast('Цель удалена','info'); }, 'Не удалось удалить цель');
 
   const updateAllocation = (goalId:string, amount:number) => guard(async()=>{
@@ -318,7 +323,7 @@ export default function App() {
       case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
       case "journal": return <JournalScreen transactions={transactions} categories={categories} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
       case "savings": return <SavingsScreen transactions={transactions} usdRate={settings.usd_rate}/>;
-      case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation} usdRate={settings.usd_rate}/>;
+      case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onEdit={updateGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation} usdRate={settings.usd_rate}/>;
       case "more": return <MoreScreen {...moreProps}/>;
     }
   };
