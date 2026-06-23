@@ -5,7 +5,6 @@ import {
   ChevronLeft, ChevronRight, AlertTriangle, AlertCircle, Wallet,
   Download, Copy, UserPlus, Sun, Moon,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle, ConfirmDialog } from "./ui";
 import { usePush } from "../../lib/usePush";
 import { api } from "../../lib/api";
@@ -307,16 +306,25 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
       </div>
       <Card className="p-4 mx-4">
         <SectionHeader title="Динамика доходов и расходов"/>
-        <ResponsiveContainer width="100%" height={170}>
-          <BarChart data={monthlyData} barSize={9} barGap={3}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(128,128,128,0.1)"/>
-            <XAxis dataKey="month" tick={{fontSize:10,fill:"currentColor",opacity:0.5}} axisLine={false} tickLine={false}/>
-            <YAxis tick={{fontSize:9,fill:"currentColor",opacity:0.5}} axisLine={false} tickLine={false} tickFormatter={v=>v>=1000?`${Math.round(v/1000)}к`:String(v)}/>
-            <Tooltip formatter={(v:number)=>fmtUZS(v)} contentStyle={{borderRadius:12,fontSize:12}}/>
-            <Bar dataKey="an_inc" name="Доходы" fill="#10b981" radius={[4,4,0,0]}/>
-            <Bar dataKey="an_exp" name="Расходы" fill="#ef4444" radius={[4,4,0,0]}/>
-          </BarChart>
-        </ResponsiveContainer>
+        {(()=>{ const max=Math.max(...monthlyData.flatMap(d=>[d.an_inc,d.an_exp]),1); return (
+          <>
+            <div className="flex items-end gap-1.5 h-32 mb-2">
+              {monthlyData.map((d,i)=>(
+                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                  <div className="w-full flex items-end justify-center gap-0.5" style={{height:"112px"}}>
+                    <div className="flex-1 max-w-[14px] rounded-t-md transition-all" style={{height:`${(d.an_inc/max)*100}%`,minHeight:d.an_inc>0?"3px":"0",background:"#34D399"}} title={fmtUZS(d.an_inc)}/>
+                    <div className="flex-1 max-w-[14px] rounded-t-md transition-all" style={{height:`${(d.an_exp/max)*100}%`,minHeight:d.an_exp>0?"3px":"0",background:"#FB7185"}} title={fmtUZS(d.an_exp)}/>
+                  </div>
+                  <span className="text-[9px] text-muted-foreground">{d.month}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm" style={{background:"#34D399"}}/><span className="text-xs text-muted-foreground">Доходы</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm" style={{background:"#FB7185"}}/><span className="text-xs text-muted-foreground">Расходы</span></div>
+            </div>
+          </>
+        );})()}
       </Card>
       {topExpenses.length>0&&(
         <Card className="p-4 mx-4">
