@@ -2,7 +2,13 @@ import pg from 'pg';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const { Pool } = pg;
+const { Pool, types } = pg;
+
+// КРИТИЧНО: pg возвращает NUMERIC как строку ("5000"), из-за чего на клиенте
+// сумма + "5000" склеивалась в строку → неверные итоги. Парсим NUMERIC (OID 1700)
+// и int8 (OID 20) в число, чтобы все расчёты были корректными.
+types.setTypeParser(1700, v => (v === null ? null : parseFloat(v)));
+types.setTypeParser(20, v => (v === null ? null : parseInt(v, 10)));
 
 if (!process.env.DATABASE_URL) {
   console.error('\n❌ DATABASE_URL не задан! Данные НЕ сохранятся между деплоями.');
