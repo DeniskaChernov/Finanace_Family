@@ -9,7 +9,7 @@ import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle
 import { usePush } from "../../lib/usePush";
 import { api } from "../../lib/api";
 import { ymd } from "../../lib/date";
-import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority, PlannedItem, PlannedRecurrence } from "../../lib/api";
+import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority, PlannedItem, PlannedRecurrence, Space, SpaceType } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
 const MONTHS_RU = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
@@ -1052,6 +1052,87 @@ export function PlannedScreen({ items,categories,usdRate,onAdd,onEdit,onDelete,o
             </div>
             <Field label="Заметка"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Необязательно"/></Field>
             <Btn onClick={async()=>{if(!title||!amount)return;setSaving(true);try{const payload={type,title,amount:parseFloat(amount),currency,category,due_date:dueDate,recurrence,note:note||undefined};if(editingId){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);reset();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!title||!amount}>{saving?"...":editingId?"Сохранить":"Запланировать"}</Btn>
+          </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+// ── Spaces (пространства: личное и бизнесы) ───────────────────────────
+const SPACE_ICONS = ["🏠","💼","🏢","🛒","🍔","💻","📦","🚗","🏭","💰","🎨","📊"];
+const SPACE_COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#06b6d4","#8b5cf6","#ef4444","#14b8a6"];
+const SPACE_TYPE_LABEL: Record<SpaceType,string> = { personal:"Личное", family:"Семья", business:"Бизнес" };
+
+export function SpacesScreen({ spaces,activeSpaceId,onSwitch,onAdd,onEdit,onDelete }: {
+  spaces:Space[]; activeSpaceId:string;
+  onSwitch:(id:string)=>void; onAdd:(s:any)=>Promise<void>;
+  onEdit:(id:string,s:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
+}) {
+  const [showForm,setShowForm]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
+  const [name,setName]=useState(""); const [type,setType]=useState<SpaceType>("business");
+  const [icon,setIcon]=useState("💼"); const [color,setColor]=useState("#6366f1");
+  const [saving,setSaving]=useState(false);
+  const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
+  const reset=()=>{setEditingId(null);setName("");setType("business");setIcon("💼");setColor("#6366f1");};
+  const openEdit=(s:Space)=>{setEditingId(s.id);setName(s.name);setType(s.type);setIcon(s.icon);setColor(s.color);setShowForm(true);};
+  const activeId=activeSpaceId||spaces[0]?.id;
+
+  return (
+    <div className="pb-24">
+      <div className="px-4 pb-3 flex items-center justify-between">
+        <div><h2 className="text-xl font-bold">Пространства</h2><p className="text-xs text-muted-foreground mt-0.5">Личное и бизнесы — у каждого свой учёт</p></div>
+        <button onClick={()=>{reset();setShowForm(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Бизнес</button>
+      </div>
+
+      <div className="px-4 space-y-2.5">
+        {spaces.map(s=>{
+          const isActive=s.id===activeId;
+          const isDefault=s.type==="family"||s.type==="personal";
+          return (
+            <Card key={s.id} className={`p-4 ${isActive?"ring-2":""}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0" style={{background:s.color+"22"}}>{s.icon}</div>
+                <div className="flex-1 min-w-0" onClick={()=>onSwitch(s.id)}>
+                  <div className="flex items-center gap-2"><p className="text-sm font-bold truncate">{s.name}</p>{isActive&&<span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{background:s.color}}>активно</span>}</div>
+                  <p className="text-[11px] text-muted-foreground">{SPACE_TYPE_LABEL[s.type]}</p>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {!isActive&&<button onClick={()=>onSwitch(s.id)} className="px-3 py-1.5 rounded-xl text-xs font-bold text-white" style={{background:s.color}}>Открыть</button>}
+                  <button onClick={()=>openEdit(s)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary active:bg-muted"><Pencil size={14}/></button>
+                  {!isDefault&&<button onClick={()=>setConfirmDeleteId(s.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-rose-400 active:bg-muted"><Trash2 size={14}/></button>}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {confirmDeleteId&&<ConfirmDialog title="Удалить пространство?" message="Все операции, категории и планы этого бизнеса будут удалены безвозвратно." onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
+
+      {showForm&&(
+        <Sheet title={editingId?"Редактировать пространство":"Новый бизнес"} onClose={()=>{setShowForm(false);reset();}}>
+          <div className="space-y-4">
+            <Field label="Название"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Кофейня, Магазин, ИП..." autoFocus/></Field>
+            {!editingId&&(
+              <Field label="Тип">
+                <div className="grid grid-cols-2 gap-2">
+                  {(["business","personal"] as SpaceType[]).map(t=><button key={t} onClick={()=>setType(t)} className={`py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${type===t?"border-primary bg-primary/5 text-primary":"border-border text-muted-foreground"}`}>{SPACE_TYPE_LABEL[t]}</button>)}
+                </div>
+              </Field>
+            )}
+            <Field label="Иконка">
+              <div className="grid grid-cols-6 gap-2">
+                {SPACE_ICONS.map(em=><button key={em} onClick={()=>setIcon(em)} className={`aspect-square rounded-xl text-lg flex items-center justify-center border-2 ${icon===em?"border-primary":"border-border"}`} style={icon===em?{background:color+"22"}:undefined}>{em}</button>)}
+              </div>
+            </Field>
+            <Field label="Цвет">
+              <div className="flex gap-2 flex-wrap">
+                {SPACE_COLORS.map(c=><button key={c} onClick={()=>setColor(c)} className={`w-9 h-9 rounded-xl border-2 ${color===c?"border-foreground":"border-transparent"}`} style={{background:c}}/>)}
+              </div>
+            </Field>
+            <Btn onClick={async()=>{if(!name)return;setSaving(true);try{const payload={name,type,icon,color};if(editingId){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowForm(false);reset();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name}>{saving?"...":editingId?"Сохранить":"Создать бизнес"}</Btn>
           </div>
         </Sheet>
       )}

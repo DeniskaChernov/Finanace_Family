@@ -3,7 +3,7 @@ import { Plus, TrendingUp, TrendingDown, Shield, Repeat, ArrowUpRight, ArrowDown
 import { Card, StatCard, SectionHeader } from "./ui";
 import { Tilt3D, useCountUp } from "./effects";
 import { TxSheet } from "./Journal";
-import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency, PlannedItem } from "../../lib/api";
+import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency, PlannedItem, Space } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
 const PIE_COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#14b8a6","#f97316","#84cc16","#8b5cf6"];
@@ -66,14 +66,17 @@ function AddFab({ onAdd }: { onAdd: (type: "income"|"expense") => void }) {
   );
 }
 
-export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,plannedItems,settings,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
+export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,plannedItems,settings,spaces,activeSpaceId,onSpaceSwitch,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
   transactions:Transaction[]; goals:Goal[];
   usdRate:number; userProfile:AppUser; familyMembers:AppUser[]; categories:Category[];
   recurringPayments:RecurringPayment[]; plannedItems:PlannedItem[]; settings:AppSettings;
+  spaces:Space[]; activeSpaceId:string; onSpaceSwitch:(id:string)=>void;
   onSave:(t:any)=>Promise<void>; onMoreSection:(s:string)=>void; onTabChange:(t:TabType)=>void;
   darkMode:boolean; onToggleDark:()=>void;
 }) {
   const [addType, setAddType] = useState<"income"|"expense"|null>(null);
+  const [showSpaces, setShowSpaces] = useState(false);
+  const activeSpace = spaces.find(s=>s.id===activeSpaceId) || spaces[0];
   const now = new Date(); const mk = monthKey();
   const monthTx = transactions.filter(t=>t.date.startsWith(mk));
   const income = monthTx.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
@@ -139,10 +142,14 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
       <div className="px-4 pt-2">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-widest">
-              {now.toLocaleDateString("ru-RU",{month:"long",year:"numeric"})}
-            </p>
-            <h2 className="text-2xl font-extrabold mt-0.5 tracking-tight">Привет, {userProfile.name} 👋</h2>
+            {activeSpace && spaces.length>0 && (
+              <button onClick={()=>setShowSpaces(true)} className="flex items-center gap-1.5 mb-1 px-2.5 py-1 rounded-full active:scale-95 transition-transform" style={{background:(activeSpace.color||"#6366f1")+"22"}}>
+                <span className="text-sm">{activeSpace.icon}</span>
+                <span className="text-xs font-bold" style={{color:activeSpace.color||"var(--primary)"}}>{activeSpace.name}</span>
+                <span className="text-[10px] opacity-60">▾</span>
+              </button>
+            )}
+            <h2 className="text-2xl font-extrabold tracking-tight">Привет, {userProfile.name} 👋</h2>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={onToggleDark}
@@ -406,6 +413,29 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
           onClose={() => setAddType(null)}
           usdRate={usdRate}
         />
+      )}
+
+      {/* Переключатель пространств */}
+      {showSpaces && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setShowSpaces(false)}/>
+          <div className="relative rounded-t-3xl p-5 sheet-safe animate-in" style={{background:"var(--card-solid)",borderTop:"1px solid var(--border)",boxShadow:"0 -16px 50px rgba(0,0,0,0.6)"}}>
+            <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4"/>
+            <h2 className="text-lg font-bold mb-4">Пространство</h2>
+            <div className="space-y-2 mb-3">
+              {spaces.map(s=>(
+                <button key={s.id} onClick={()=>{onSpaceSwitch(s.id);setShowSpaces(false);}}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl active:scale-[0.98] transition-transform"
+                  style={{background:s.id===activeSpaceId?(s.color||"#6366f1")+"22":"var(--muted)",border:s.id===activeSpaceId?`1.5px solid ${s.color}`:"1.5px solid transparent"}}>
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg flex-shrink-0" style={{background:(s.color||"#6366f1")+"22"}}>{s.icon}</div>
+                  <div className="flex-1 text-left"><p className="text-sm font-bold">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.type==="business"?"Бизнес":"Личное"}</p></div>
+                  {s.id===activeSpaceId&&<span className="text-xs font-bold" style={{color:s.color}}>✓</span>}
+                </button>
+              ))}
+            </div>
+            <button onClick={()=>{setShowSpaces(false);onMoreSection("spaces");}} className="w-full py-3 rounded-2xl font-bold text-sm" style={{background:"var(--muted)"}}>⚙️ Управление пространствами</button>
+          </div>
+        </div>
       )}
     </div>
   );

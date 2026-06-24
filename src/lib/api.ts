@@ -4,12 +4,17 @@ function getToken(): string {
   return localStorage.getItem('fb_token') || '';
 }
 
+function getActiveSpace(): string {
+  return localStorage.getItem('fb_space') || '';
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${getToken()}`,
+      'X-Space-Id': getActiveSpace(),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -35,6 +40,12 @@ const del = <T>(path: string) => req<T>('DELETE', path);
 // ── Auth ─────────────────────────────────────────────────────────
 export const api = {
   diag: () => get<{ hasDatabaseUrl: boolean; host: string | null; transactions: number | null; goals: number | null; error: string | null }>('/diag'),
+  spaces: {
+    list: () => get<Space[]>('/spaces'),
+    create: (s: SpacePayload) => post<Space>('/spaces', s),
+    update: (id: string, s: Partial<SpacePayload>) => put<Space>(`/spaces/${id}`, s),
+    delete: (id: string) => del<{ ok: boolean }>(`/spaces/${id}`),
+  },
   auth: {
     login: (name: string, password: string) =>
       post<{ token: string; user: AppUser }>('/auth/login', { name, password }),
@@ -170,6 +181,11 @@ export interface Comment {
   id: string; family_id: string; entity_type: string; entity_id: string;
   user_name: string; body: string; created_at: string;
 }
+export type SpaceType = 'personal' | 'family' | 'business';
+export interface Space {
+  id: string; family_id: string; name: string; type: SpaceType;
+  icon: string; color: string; created_at: string;
+}
 export type PlannedRecurrence = 'once' | 'monthly';
 export type PlannedStatus = 'planned' | 'done';
 export interface PlannedItem {
@@ -191,6 +207,9 @@ interface BudgetPayload { category: string; month_limit: number; month: string; 
 interface RecurringPayload {
   name: string; category: string; amount: number;
   frequency: Frequency; next_date: string;
+}
+interface SpacePayload {
+  name: string; type?: SpaceType; icon?: string; color?: string; usd_rate?: number;
 }
 interface PlannedPayload {
   type: TxType; title: string; amount: number; currency?: Currency;

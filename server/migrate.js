@@ -134,6 +134,18 @@ export async function migrate() {
         UNIQUE(user_id, endpoint)
       );
 
+      -- Пространства (личное / бизнесы). spaces.id — это scope, который пишется
+      -- в колонку family_id всех данных. spaces.family_id — владелец-аккаунт (стабильный).
+      CREATE TABLE IF NOT EXISTS spaces (
+        id TEXT PRIMARY KEY,
+        family_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT DEFAULT 'business',   -- personal | family | business
+        icon TEXT DEFAULT '💼',
+        color TEXT DEFAULT '#6366f1',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       -- Ожидаемые доходы/траты (планирование, прогноз)
       CREATE TABLE IF NOT EXISTS planned_items (
         id TEXT PRIMARY KEY,
@@ -195,6 +207,13 @@ export async function migrate() {
     await client.query(`
       INSERT INTO settings (id, family_id, usd_rate, quick_actions)
       VALUES ('set-001', 'fam-001', 12700, 'Продукты,Такси,Кафе,Интернет')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // 5b. Пространство по умолчанию (его id = 'fam-001' = scope существующих данных)
+    await client.query(`
+      INSERT INTO spaces (id, family_id, name, type, icon, color)
+      VALUES ('fam-001', 'fam-001', 'Личное', 'family', '🏠', '#6366f1')
       ON CONFLICT (id) DO NOTHING;
     `);
 

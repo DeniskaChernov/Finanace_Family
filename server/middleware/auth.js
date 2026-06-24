@@ -23,5 +23,16 @@ export async function authMiddleware(req, res, next) {
       if (rows[0]?.family_id) req.user.family_id = rows[0].family_id;
     } catch { /* ignore */ }
   }
+  // Аккаунт-владелец (стабильный) — для управления пространствами и участниками.
+  req.account = req.user.family_id;
+  // Активное пространство: scope данных = id выбранного пространства.
+  // По умолчанию = аккаунт (пространство 'Личное', его id совпадает с account).
+  const hdr = req.headers['x-space-id'];
+  if (hdr && hdr !== req.account) {
+    try {
+      const { rows } = await pool.query('SELECT id FROM spaces WHERE id=$1 AND family_id=$2', [hdr, req.account]);
+      if (rows.length) req.user.family_id = hdr; // переключаем scope на бизнес
+    } catch { /* ignore — остаёмся в дефолтном пространстве */ }
+  }
   next();
 }

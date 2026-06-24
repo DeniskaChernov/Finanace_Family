@@ -62,7 +62,7 @@ router.get('/me', async (req, res) => {
 
 // GET /api/auth/family-members
 router.get('/family-members', authMiddleware, async (req, res) => {
-  const fid = req.user?.family_id;
+  const fid = req.account; // стабильный аккаунт, не активное пространство
   if (!fid) return res.status(401).json({ error: 'Не авторизован' });
   try {
     const { rows } = await pool.query('SELECT id,name,phone,family_id,role,avatar,color,created_at FROM users WHERE family_id=$1', [fid]);
