@@ -7,7 +7,7 @@ import {
 import { Field, Input, Select, ConfirmDialog } from "./ui";
 import { api } from "../../lib/api";
 import { ymd } from "../../lib/date";
-import type { Transaction, Category, Comment, Currency, TxType } from "../../lib/api";
+import type { Transaction, Category, Comment, Currency, TxType, Contractor } from "../../lib/api";
 
 const MONTHS_RU = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
 const fmt = (n:number) => new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(n);
@@ -135,8 +135,8 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
   );
 }
 
-export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate }: {
-  categories:Category[]; initial?:Transaction; initialType?:"income"|"expense";
+export function TxSheet({ categories,contractors=[],initial,initialType,onSave,onClose,usdRate }: {
+  categories:Category[]; contractors?:Contractor[]; initial?:Transaction; initialType?:"income"|"expense";
   onSave:(t:any,id?:string)=>Promise<void>; onClose:()=>void; usdRate:number;
 }) {
   const [type,setType] = useState<TxType>(initial?.type??initialType??"expense");
@@ -145,6 +145,7 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
   const [amount,setAmount] = useState(initial?String(initial.amount):"");
   const [date,setDate] = useState(initial?.date??ymd());
   const [desc,setDesc] = useState(initial?.description??"");
+  const [contractorId,setContractorId] = useState<string|null>(initial?.contractor_id??null);
   const [receiptUrl,setReceiptUrl] = useState<string|null>(initial?.receipt_url??null);
   const [uploading,setUploading] = useState(false);
   const [saving,setSaving] = useState(false);
@@ -174,7 +175,7 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
     if(!canSave) return;
     setSaving(true);
     try {
-      await onSave({type,category,amount:amtNum,currency,date,description:desc,receipt_url:receiptUrl},initial?.id);
+      await onSave({type,category,amount:amtNum,currency,date,description:desc,receipt_url:receiptUrl,contractor_id:contractorId},initial?.id);
       onClose();
     } catch {
       /* ошибка уже показана тостом — лист оставляем открытым для повтора */
@@ -270,6 +271,18 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
             </Field>
           </div>
 
+          {/* Контрагент (если есть) */}
+          {contractors.length>0&&(
+            <Field label="Контрагент">
+              <select value={contractorId??""} onChange={e=>setContractorId(e.target.value||null)}
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium appearance-none outline-none"
+                style={{background:"var(--input-background)",border:"1.5px solid var(--border)"}}>
+                <option value="">Не указан</option>
+                {contractors.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+          )}
+
           {/* Фото чека */}
           {type==="expense"&&(
             <div>
@@ -303,8 +316,8 @@ export function TxSheet({ categories,initial,initialType,onSave,onClose,usdRate 
   );
 }
 
-export function JournalScreen({ transactions,categories,onSave,onDelete,currentUserId,usdRate }: {
-  transactions:Transaction[]; categories:Category[];
+export function JournalScreen({ transactions,categories,contractors=[],onSave,onDelete,currentUserId,usdRate }: {
+  transactions:Transaction[]; categories:Category[]; contractors?:Contractor[];
   onSave:(t:any,id?:string)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
   currentUserId:string; usdRate:number;
 }) {
@@ -407,7 +420,7 @@ export function JournalScreen({ transactions,categories,onSave,onDelete,currentU
           {showSheet&&!editing ? <X size={22}/> : <Plus size={24}/>}
         </button>
       </div>
-      {editing&&<TxSheet categories={categories} initial={editing.id ? editing : undefined} initialType={editing.type} onSave={onSave} usdRate={usdRate} onClose={()=>{setShowSheet(false);setEditing(undefined);}}/>}
+      {editing&&<TxSheet categories={categories} contractors={contractors} initial={editing.id ? editing : undefined} initialType={editing.type} onSave={onSave} usdRate={usdRate} onClose={()=>{setShowSheet(false);setEditing(undefined);}}/>}
     </div>
   );
 }

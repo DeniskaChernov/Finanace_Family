@@ -19,6 +19,7 @@ import commentsRouter from './routes/comments.js';
 import pushRouter from './routes/push.js';
 import plannedRouter from './routes/planned.js';
 import spacesRouter from './routes/spaces.js';
+import contractorsRouter from './routes/contractors.js';
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/api/comments', authMiddleware, commentsRouter);
 app.use('/api/push', authMiddleware, pushRouter);
 app.use('/api/planned', authMiddleware, plannedRouter);
 app.use('/api/spaces', authMiddleware, spacesRouter);
+app.use('/api/contractors', authMiddleware, contractorsRouter);
 
 // Serve React app in production
 const distPath = join(__dirname, '../dist');

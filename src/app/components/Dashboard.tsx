@@ -3,7 +3,7 @@ import { Plus, TrendingUp, TrendingDown, Shield, Repeat, ArrowUpRight, ArrowDown
 import { Card, StatCard, SectionHeader } from "./ui";
 import { Tilt3D, useCountUp } from "./effects";
 import { TxSheet } from "./Journal";
-import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency, PlannedItem, Space } from "../../lib/api";
+import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency, PlannedItem, Space, Contractor } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
 const PIE_COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#14b8a6","#f97316","#84cc16","#8b5cf6"];
@@ -66,10 +66,11 @@ function AddFab({ onAdd }: { onAdd: (type: "income"|"expense") => void }) {
   );
 }
 
-export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,plannedItems,settings,spaces,activeSpaceId,onSpaceSwitch,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
+export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,plannedItems,settings,contractors=[],spaces,activeSpaceId,onSpaceSwitch,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
   transactions:Transaction[]; goals:Goal[];
   usdRate:number; userProfile:AppUser; familyMembers:AppUser[]; categories:Category[];
   recurringPayments:RecurringPayment[]; plannedItems:PlannedItem[]; settings:AppSettings;
+  contractors?:Contractor[];
   spaces:Space[]; activeSpaceId:string; onSpaceSwitch:(id:string)=>void;
   onSave:(t:any)=>Promise<void>; onMoreSection:(s:string)=>void; onTabChange:(t:TabType)=>void;
   darkMode:boolean; onToggleDark:()=>void;
@@ -408,6 +409,7 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
       {addType && (
         <TxSheet
           categories={categories}
+          contractors={contractors}
           initialType={addType}
           onSave={async (payload) => { await onSave(payload); setAddType(null); }}
           onClose={() => setAddType(null)}

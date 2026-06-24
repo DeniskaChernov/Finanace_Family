@@ -26,13 +26,13 @@ router.get('/', async (req, res) => {
 // POST /api/planned
 router.post('/', async (req, res) => {
   const { family_id, name: userName } = req.user;
-  const { type, title, amount, currency = 'UZS', category = '', due_date, recurrence = 'once', note = null } = req.body;
+  const { type, title, amount, currency = 'UZS', category = '', due_date, recurrence = 'once', note = null, contractor_id = null } = req.body;
   const id = randomUUID();
   try {
     const { rows } = await pool.query(
-      `INSERT INTO planned_items (id,family_id,type,title,amount,currency,category,due_date,recurrence,status,note,created_by_name)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'planned',$10,$11) RETURNING *`,
-      [id, family_id, type, title, amount, currency, category, due_date, recurrence, note, userName]
+      `INSERT INTO planned_items (id,family_id,type,title,amount,currency,category,due_date,recurrence,status,note,contractor_id,created_by_name)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'planned',$10,$11,$12) RETURNING *`,
+      [id, family_id, type, title, amount, currency, category, due_date, recurrence, note, contractor_id, userName]
     );
     res.status(201).json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -41,12 +41,12 @@ router.post('/', async (req, res) => {
 // PUT /api/planned/:id
 router.put('/:id', async (req, res) => {
   const { family_id } = req.user;
-  const { type, title, amount, currency, category, due_date, recurrence, note } = req.body;
+  const { type, title, amount, currency, category, due_date, recurrence, note, contractor_id = null } = req.body;
   try {
     const { rows } = await pool.query(
-      `UPDATE planned_items SET type=$1,title=$2,amount=$3,currency=$4,category=$5,due_date=$6,recurrence=$7,note=$8
-       WHERE id=$9 AND family_id=$10 RETURNING *`,
-      [type, title, amount, currency, category, due_date, recurrence, note || null, req.params.id, family_id]
+      `UPDATE planned_items SET type=$1,title=$2,amount=$3,currency=$4,category=$5,due_date=$6,recurrence=$7,note=$8,contractor_id=$9
+       WHERE id=$10 AND family_id=$11 RETURNING *`,
+      [type, title, amount, currency, category, due_date, recurrence, note || null, contractor_id, req.params.id, family_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Не найдено' });
     res.json(rows[0]);
@@ -73,9 +73,9 @@ router.post('/:id/confirm', async (req, res) => {
     // Создаём реальную транзакцию из плана
     const txId = randomUUID();
     const { rows: txRows } = await pool.query(
-      `INSERT INTO transactions (id,family_id,user_id,date,type,category,amount,currency,description,created_by,created_by_name)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [txId, family_id, user_id, p.due_date, p.type, p.category || 'Прочее', p.amount, p.currency, p.title, user_id, userName]
+      `INSERT INTO transactions (id,family_id,user_id,date,type,category,amount,currency,description,contractor_id,created_by,created_by_name)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [txId, family_id, user_id, p.due_date, p.type, p.category || 'Прочее', p.amount, p.currency, p.title, p.contractor_id, user_id, userName]
     );
 
     // Регулярный план — двигаем на следующий месяц; разовый — помечаем выполненным

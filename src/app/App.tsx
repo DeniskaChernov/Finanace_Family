@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Home, FileText, PiggyBank, Target, User, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { api } from "../lib/api";
 import { ymd } from "../lib/date";
-import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency, PlannedItem, Space } from "../lib/api";
+import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency, PlannedItem, Space, Contractor } from "../lib/api";
 import { Toast } from "./components/ui";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { LoginScreen } from "./components/Login";
@@ -12,11 +12,11 @@ import {
   SavingsScreen, GoalsScreen, AnalyticsScreen, BudgetsScreen, RecurringScreen,
   CalendarScreen, MonthlyReportScreen, SettingsScreen, AllocationScreen,
   CategoriesScreen, NotificationsScreen, FamilyScreen, ProfileScreen, ExportScreen,
-  PlannedScreen, SpacesScreen, PnLScreen,
+  PlannedScreen, SpacesScreen, PnLScreen, ContractorsScreen,
 } from "./components/Screens";
 
 type TabType = "dashboard" | "journal" | "savings" | "goals" | "more";
-type MoreSection = "profile"|"family"|"spaces"|"analytics"|"pnl"|"budgets"|"recurring"|"planned"|"calendar"|"report"|"notifications"|"allocation"|"categories"|"export"|"settings";
+type MoreSection = "profile"|"family"|"spaces"|"contractors"|"analytics"|"pnl"|"budgets"|"recurring"|"planned"|"calendar"|"report"|"notifications"|"allocation"|"categories"|"export"|"settings";
 
 const fmt = (n:number) => new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(n);
 const fmtUZS = (n:number) => `${fmt(n)} сум`;
@@ -79,6 +79,8 @@ function MoreScreen(props: {
   onPlannedAdd:(p:any)=>Promise<void>; onPlannedEdit:(id:string,p:any)=>Promise<void>; onPlannedDelete:(id:string)=>Promise<void>; onPlannedConfirm:(id:string)=>Promise<void>;
   spaces:Space[]; activeSpaceId:string;
   onSpaceSwitch:(id:string)=>void; onSpaceAdd:(s:any)=>Promise<void>; onSpaceEdit:(id:string,s:any)=>Promise<void>; onSpaceDelete:(id:string)=>Promise<void>;
+  contractors:Contractor[];
+  onContractorAdd:(c:any)=>Promise<void>; onContractorEdit:(id:string,c:any)=>Promise<void>; onContractorDelete:(id:string)=>Promise<void>;
   darkMode:boolean; onToggleDark:()=>void; onLogout:()=>void; defaultSection?:string;
 }) {
   const [section,setSection]=useState<MoreSection|null>((props.defaultSection as MoreSection)||null);
@@ -97,9 +99,10 @@ function MoreScreen(props: {
   if(section==="spaces") return <div><Back title="Пространства"/><SpacesScreen spaces={props.spaces} activeSpaceId={props.activeSpaceId} onSwitch={props.onSpaceSwitch} onAdd={props.onSpaceAdd} onEdit={props.onSpaceEdit} onDelete={props.onSpaceDelete}/></div>;
   if(section==="analytics") return <div><Back title="Аналитика"/><AnalyticsScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="pnl") return <div><Back title="P&L · Прибыль/Убыток"/><PnLScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
+  if(section==="contractors") return <div><Back title="Контрагенты"/><ContractorsScreen contractors={props.contractors} transactions={props.transactions} plannedItems={props.plannedItems} usdRate={props.usdRate} onAdd={props.onContractorAdd} onEdit={props.onContractorEdit} onDelete={props.onContractorDelete}/></div>;
   if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onDelete={props.onBudgetDelete} usdRate={props.usdRate}/></div>;
   if(section==="recurring") return <div><Back title="Регулярные платежи"/><RecurringScreen payments={props.recurringPayments} categories={props.categories} userName={props.userProfile.name} onAdd={props.onRecurringAdd} onDelete={props.onRecurringDelete} onMarkPaid={props.onRecurringMarkPaid}/></div>;
-  if(section==="planned") return <div><Back title="Планы и прогноз"/><PlannedScreen items={props.plannedItems} categories={props.categories} usdRate={props.usdRate} onAdd={props.onPlannedAdd} onEdit={props.onPlannedEdit} onDelete={props.onPlannedDelete} onConfirm={props.onPlannedConfirm}/></div>;
+  if(section==="planned") return <div><Back title="Планы и прогноз"/><PlannedScreen items={props.plannedItems} categories={props.categories} contractors={props.contractors} usdRate={props.usdRate} onAdd={props.onPlannedAdd} onEdit={props.onPlannedEdit} onDelete={props.onPlannedDelete} onConfirm={props.onPlannedConfirm}/></div>;
   if(section==="calendar") return <div><Back title="Финансовый календарь"/><CalendarScreen transactions={props.transactions} recurringPayments={props.recurringPayments}/></div>;
   if(section==="report") return <div><Back title="Ежемесячный отчёт"/><MonthlyReportScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="notifications") return <div><Back title="Уведомления"/><NotificationsScreen notifications={props.notifications} onMarkRead={props.onMarkNotifRead} onMarkAllRead={props.onMarkAllNotifRead}/></div>;
@@ -117,6 +120,7 @@ function MoreScreen(props: {
     ]},
     {title:"Планирование",items:[
       {id:"planned" as MoreSection,icon:"🔮",label:"Планы и прогноз",sub:`${props.plannedItems.filter(p=>p.status==="planned").length} ожидается`},
+      {id:"contractors" as MoreSection,icon:"🤝",label:"Контрагенты",sub:`${props.contractors.length} · клиенты, поставщики`},
       {id:"budgets" as MoreSection,icon:"🎯",label:"Бюджеты",sub:`${props.budgets.length} лимитов`},
       {id:"recurring" as MoreSection,icon:"🔄",label:"Регулярные платежи",sub:`${props.recurringPayments.length} платежей`},
       {id:"allocation" as MoreSection,icon:"💎",label:"Распределение",sub:`${props.goals.length} целей`},
@@ -182,6 +186,7 @@ export default function App() {
   const [plannedItems, setPlannedItems] = useState<PlannedItem[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [activeSpaceId, setActiveSpaceId] = useState<string>(()=>localStorage.getItem("fb_space")||"");
+  const [contractors, setContractors] = useState<Contractor[]>([]);
   const [darkMode, setDarkMode] = useState(()=>localStorage.getItem("theme")!=="light"); // тёмная тема по умолчанию
   const [toast, setToast] = useState<{msg:string;type:'success'|'error'|'warning'|'info'}|null>(null);
   const showToast = (msg:string, type:'success'|'error'|'warning'|'info'='info') => setToast({msg,type});
@@ -194,11 +199,13 @@ export default function App() {
     setLoading(true);
     try {
       // allSettled: сбой одного эндпоинта не обнуляет ВСЕ данные
-      const [txs,cats,gls,sets,notifs,recurs,buds,members,planned,spcs] = await Promise.allSettled([
+      const [txs,cats,gls,sets,notifs,recurs,buds,members,planned,spcs,contrs] = await Promise.allSettled([
         api.transactions.list(), api.categories.list(), api.goals.list(),
         api.settings.get(), api.notifications.list(), api.recurring.list(),
         api.budgets.list(), api.auth.familyMembers(), api.planned.list(), api.spaces.list(),
+        api.contractors.list(),
       ]);
+      if(contrs.status==="fulfilled") setContractors(contrs.value);
       if(spcs.status==="fulfilled"){
         setSpaces(spcs.value);
         // если активное пространство не из списка — берём дефолтное (первое)
@@ -215,7 +222,7 @@ export default function App() {
       if(buds.status==="fulfilled") setBudgets(buds.value);
       if(members.status==="fulfilled") setFamilyMembers(members.value);
       if(planned.status==="fulfilled") setPlannedItems(planned.value);
-      const failed=[txs,cats,gls,sets,notifs,recurs,buds,members,planned].filter(r=>r.status==="rejected");
+      const failed=[txs,cats,gls,sets,notifs,recurs,buds,members,planned,spcs,contrs].filter(r=>r.status==="rejected");
       if(failed.length) console.error("loadAll: часть запросов не удалась", failed);
     } catch(e) { console.error("loadAll", e); }
     finally { setLoading(false); }
@@ -309,6 +316,11 @@ export default function App() {
     showToast('✅ План подтверждён — операция создана','success');
   }, 'Не удалось подтвердить план');
 
+  // ── Контрагенты ─────────────────────────────────────────────────
+  const addContractor = (c:any) => guard(async()=>{ const x=await api.contractors.create(c); setContractors(prev=>[...prev,x]); showToast('Контрагент добавлен','success'); }, 'Не удалось добавить контрагента');
+  const updateContractor = (id:string,c:any) => guard(async()=>{ const x=await api.contractors.update(id,c); setContractors(prev=>prev.map(i=>i.id===id?x:i)); showToast('Контрагент обновлён','success'); }, 'Не удалось обновить контрагента');
+  const deleteContractor = (id:string) => guard(async()=>{ await api.contractors.delete(id); setContractors(prev=>prev.filter(i=>i.id!==id)); showToast('Контрагент удалён','info'); }, 'Не удалось удалить контрагента');
+
   // ── Пространства (бизнесы) ──────────────────────────────────────
   const switchSpace = (id:string) => {
     if(id===activeSpaceId) return;
@@ -348,7 +360,7 @@ export default function App() {
     localStorage.removeItem("fb_token"); localStorage.removeItem("fb_session");
     setUserProfile(null); setTransactions([]); setCategories([]); setGoals([]);
     setNotifications([]); setRecurringPayments([]); setBudgets([]); setPlannedItems([]);
-    setSpaces([]);
+    setSpaces([]); setContractors([]);
   };
 
   const totalSavings = transactions.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",settings.usd_rate),0)
@@ -376,13 +388,14 @@ export default function App() {
     onRecurringDelete:deleteRecurring, onRecurringMarkPaid:markRecurringPaid,
     plannedItems, onPlannedAdd:addPlanned, onPlannedEdit:updatePlanned, onPlannedDelete:deletePlanned, onPlannedConfirm:confirmPlanned,
     spaces, activeSpaceId, onSpaceSwitch:switchSpace, onSpaceAdd:addSpace, onSpaceEdit:updateSpace, onSpaceDelete:deleteSpace,
+    contractors, onContractorAdd:addContractor, onContractorEdit:updateContractor, onContractorDelete:deleteContractor,
     darkMode, onToggleDark:()=>setDarkMode(d=>!d), onLogout:logout, defaultSection:moreDefaultSection,
   };
 
   const renderScreen = () => {
     switch(activeTab) {
-      case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} plannedItems={plannedItems} settings={settings} spaces={spaces} activeSpaceId={activeSpaceId} onSpaceSwitch={switchSpace} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
-      case "journal": return <JournalScreen transactions={transactions} categories={categories} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
+      case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} plannedItems={plannedItems} settings={settings} contractors={contractors} spaces={spaces} activeSpaceId={activeSpaceId} onSpaceSwitch={switchSpace} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
+      case "journal": return <JournalScreen transactions={transactions} categories={categories} contractors={contractors} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
       case "savings": return <SavingsScreen transactions={transactions} usdRate={settings.usd_rate}/>;
       case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onEdit={updateGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation} usdRate={settings.usd_rate}/>;
       case "more": return <MoreScreen {...moreProps}/>;

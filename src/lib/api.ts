@@ -46,6 +46,12 @@ export const api = {
     update: (id: string, s: Partial<SpacePayload>) => put<Space>(`/spaces/${id}`, s),
     delete: (id: string) => del<{ ok: boolean }>(`/spaces/${id}`),
   },
+  contractors: {
+    list: () => get<Contractor[]>('/contractors'),
+    create: (c: ContractorPayload) => post<Contractor>('/contractors', c),
+    update: (id: string, c: Partial<ContractorPayload>) => put<Contractor>(`/contractors/${id}`, c),
+    delete: (id: string) => del<{ ok: boolean }>(`/contractors/${id}`),
+  },
   auth: {
     login: (name: string, password: string) =>
       post<{ token: string; user: AppUser }>('/auth/login', { name, password }),
@@ -149,7 +155,7 @@ export interface AppUser {
 export interface Transaction {
   id: string; family_id: string; user_id: string; date: string;
   type: TxType; category: string; amount: number; currency: Currency;
-  description: string; receipt_url: string | null;
+  description: string; receipt_url: string | null; contractor_id: string | null;
   created_by: string; created_by_name: string; created_at: string;
   updated_by: string | null; updated_by_name: string | null; updated_at: string | null;
 }
@@ -181,6 +187,11 @@ export interface Comment {
   id: string; family_id: string; entity_type: string; entity_id: string;
   user_name: string; body: string; created_at: string;
 }
+export type ContractorType = 'client' | 'supplier' | 'both';
+export interface Contractor {
+  id: string; family_id: string; name: string; type: ContractorType;
+  phone: string | null; note: string | null; created_at: string;
+}
 export type SpaceType = 'personal' | 'family' | 'business';
 export interface Space {
   id: string; family_id: string; name: string; type: SpaceType;
@@ -192,12 +203,12 @@ export interface PlannedItem {
   id: string; family_id: string; type: TxType; title: string;
   amount: number; currency: Currency; category: string; due_date: string;
   recurrence: PlannedRecurrence; status: PlannedStatus; note: string | null;
-  created_by_name: string; created_at: string;
+  contractor_id: string | null; created_by_name: string; created_at: string;
 }
 
 interface TxPayload {
   date: string; type: TxType; category: string; amount: number;
-  currency: Currency; description: string; receipt_url: string | null;
+  currency: Currency; description: string; receipt_url: string | null; contractor_id?: string | null;
 }
 interface GoalPayload {
   name: string; target_amount: number; target_currency?: Currency;
@@ -211,7 +222,10 @@ interface RecurringPayload {
 interface SpacePayload {
   name: string; type?: SpaceType; icon?: string; color?: string; usd_rate?: number;
 }
+interface ContractorPayload {
+  name: string; type?: ContractorType; phone?: string | null; note?: string | null;
+}
 interface PlannedPayload {
   type: TxType; title: string; amount: number; currency?: Currency;
-  category?: string; due_date: string; recurrence?: PlannedRecurrence; note?: string;
+  category?: string; due_date: string; recurrence?: PlannedRecurrence; note?: string; contractor_id?: string | null;
 }

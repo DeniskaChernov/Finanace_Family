@@ -146,6 +146,17 @@ export async function migrate() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      -- Контрагенты (клиенты/поставщики) — scoped по family_id (= пространство)
+      CREATE TABLE IF NOT EXISTS contractors (
+        id TEXT PRIMARY KEY,
+        family_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT DEFAULT 'client',   -- client | supplier | both
+        phone TEXT,
+        note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       -- Ожидаемые доходы/траты (планирование, прогноз)
       CREATE TABLE IF NOT EXISTS planned_items (
         id TEXT PRIMARY KEY,
@@ -163,6 +174,10 @@ export async function migrate() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+
+    // Связь с контрагентами (добавляется к существующим таблицам)
+    await client.query(`ALTER TABLE transactions  ADD COLUMN IF NOT EXISTS contractor_id TEXT;`);
+    await client.query(`ALTER TABLE planned_items ADD COLUMN IF NOT EXISTS contractor_id TEXT;`);
     console.log('✅ Database migrated');
 
     // ── Идемпотентный самоисцеляющий сид (выполняется при каждом старте) ──

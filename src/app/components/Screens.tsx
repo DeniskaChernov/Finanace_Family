@@ -9,7 +9,7 @@ import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle
 import { usePush } from "../../lib/usePush";
 import { api } from "../../lib/api";
 import { ymd } from "../../lib/date";
-import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority, PlannedItem, PlannedRecurrence, Space, SpaceType } from "../../lib/api";
+import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority, PlannedItem, PlannedRecurrence, Space, SpaceType, Contractor, ContractorType } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
 const MONTHS_RU = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
@@ -946,8 +946,8 @@ export function ExportScreen({ transactions,goals }: { transactions:Transaction[
 }
 
 // ── Planned / Forecast (ожидаемые доходы и траты) ─────────────────────
-export function PlannedScreen({ items,categories,usdRate,onAdd,onEdit,onDelete,onConfirm }: {
-  items:PlannedItem[]; categories:Category[]; usdRate:number;
+export function PlannedScreen({ items,categories,contractors=[],usdRate,onAdd,onEdit,onDelete,onConfirm }: {
+  items:PlannedItem[]; categories:Category[]; contractors?:Contractor[]; usdRate:number;
   onAdd:(p:any)=>Promise<void>; onEdit:(id:string,p:any)=>Promise<void>;
   onDelete:(id:string)=>Promise<void>; onConfirm:(id:string)=>Promise<void>;
 }) {
@@ -957,11 +957,11 @@ export function PlannedScreen({ items,categories,usdRate,onAdd,onEdit,onDelete,o
   const [title,setTitle]=useState(""); const [amount,setAmount]=useState("");
   const [currency,setCurrency]=useState<Currency>("UZS"); const [category,setCategory]=useState("");
   const [dueDate,setDueDate]=useState(ymd()); const [recurrence,setRecurrence]=useState<PlannedRecurrence>("once");
-  const [note,setNote]=useState(""); const [saving,setSaving]=useState(false);
+  const [note,setNote]=useState(""); const [contractorId,setContractorId]=useState<string|null>(null); const [saving,setSaving]=useState(false);
   const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
 
-  const reset=()=>{setEditingId(null);setType("income");setTitle("");setAmount("");setCurrency("UZS");setCategory("");setDueDate(ymd());setRecurrence("once");setNote("");};
-  const openEdit=(p:PlannedItem)=>{setEditingId(p.id);setType(p.type);setTitle(p.title);setAmount(String(p.amount));setCurrency(p.currency);setCategory(p.category);setDueDate(p.due_date);setRecurrence(p.recurrence);setNote(p.note||"");setShowAdd(true);};
+  const reset=()=>{setEditingId(null);setType("income");setTitle("");setAmount("");setCurrency("UZS");setCategory("");setDueDate(ymd());setRecurrence("once");setNote("");setContractorId(null);};
+  const openEdit=(p:PlannedItem)=>{setEditingId(p.id);setType(p.type);setTitle(p.title);setAmount(String(p.amount));setCurrency(p.currency);setCategory(p.category);setDueDate(p.due_date);setRecurrence(p.recurrence);setNote(p.note||"");setContractorId(p.contractor_id||null);setShowAdd(true);};
 
   const mk=monthKey();
   const planned=items.filter(p=>p.status==="planned");
@@ -1050,8 +1050,112 @@ export function PlannedScreen({ items,categories,usdRate,onAdd,onEdit,onDelete,o
                 <Select value={recurrence} onChange={e=>setRecurrence(e.target.value as PlannedRecurrence)}><option value="once">Разово</option><option value="monthly">Ежемесячно</option></Select>
               </Field>
             </div>
+            {contractors.length>0&&(
+              <Field label="Контрагент">
+                <Select value={contractorId??""} onChange={e=>setContractorId(e.target.value||null)}>
+                  <option value="">Не указан</option>
+                  {contractors.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </Select>
+              </Field>
+            )}
             <Field label="Заметка"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Необязательно"/></Field>
-            <Btn onClick={async()=>{if(!title||!amount)return;setSaving(true);try{const payload={type,title,amount:parseFloat(amount),currency,category,due_date:dueDate,recurrence,note:note||undefined};if(editingId){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);reset();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!title||!amount}>{saving?"...":editingId?"Сохранить":"Запланировать"}</Btn>
+            <Btn onClick={async()=>{if(!title||!amount)return;setSaving(true);try{const payload={type,title,amount:parseFloat(amount),currency,category,due_date:dueDate,recurrence,note:note||undefined,contractor_id:contractorId};if(editingId){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);reset();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!title||!amount}>{saving?"...":editingId?"Сохранить":"Запланировать"}</Btn>
+          </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+// ── Contractors (контрагенты: клиенты/поставщики + долги) ─────────────
+const CONTRACTOR_TYPE_LABEL: Record<ContractorType,string> = { client:"Клиент", supplier:"Поставщик", both:"Клиент и поставщик" };
+
+export function ContractorsScreen({ contractors,transactions,plannedItems,usdRate,onAdd,onEdit,onDelete }: {
+  contractors:Contractor[]; transactions:Transaction[]; plannedItems:PlannedItem[]; usdRate:number;
+  onAdd:(c:any)=>Promise<void>; onEdit:(id:string,c:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>;
+}) {
+  const [showForm,setShowForm]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
+  const [name,setName]=useState(""); const [type,setType]=useState<ContractorType>("client");
+  const [phone,setPhone]=useState(""); const [note,setNote]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
+  const [expanded,setExpanded]=useState<string|null>(null);
+  const reset=()=>{setEditingId(null);setName("");setType("client");setPhone("");setNote("");};
+  const openEdit=(c:Contractor)=>{setEditingId(c.id);setName(c.name);setType(c.type);setPhone(c.phone||"");setNote(c.note||"");setShowForm(true);};
+
+  const uzs=(amount:number,cur:Currency)=>toUZS(amount,cur??"UZS",usdRate);
+  const stats=(cid:string)=>{
+    const txs=transactions.filter(t=>t.contractor_id===cid);
+    const plans=plannedItems.filter(p=>p.contractor_id===cid&&p.status==="planned");
+    const received=txs.filter(t=>t.type==="income").reduce((s,t)=>s+uzs(t.amount,t.currency),0);
+    const paid=txs.filter(t=>t.type==="expense").reduce((s,t)=>s+uzs(t.amount,t.currency),0);
+    const receivable=plans.filter(p=>p.type==="income").reduce((s,p)=>s+uzs(p.amount,p.currency),0); // вам должны
+    const payable=plans.filter(p=>p.type==="expense").reduce((s,p)=>s+uzs(p.amount,p.currency),0);   // вы должны
+    return { received, paid, receivable, payable, turnover: received+paid, txs };
+  };
+
+  return (
+    <div className="pb-24">
+      <div className="px-4 pb-3 flex items-center justify-between">
+        <div><h2 className="text-xl font-bold">Контрагенты</h2><p className="text-xs text-muted-foreground mt-0.5">Клиенты, поставщики и долги</p></div>
+        <button onClick={()=>{reset();setShowForm(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
+      </div>
+
+      {contractors.length===0?(
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground"><Users size={48} className="mb-3 opacity-20"/><p className="text-sm">Нет контрагентов</p></div>
+      ):(
+        <div className="px-4 space-y-2.5">
+          {contractors.map(c=>{
+            const st=stats(c.id);
+            const isOpen=expanded===c.id;
+            return (
+              <Card key={c.id} className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">{c.name[0]}</div>
+                  <div className="flex-1 min-w-0" onClick={()=>setExpanded(isOpen?null:c.id)}>
+                    <p className="text-sm font-bold truncate">{c.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{CONTRACTOR_TYPE_LABEL[c.type]}{c.phone?` · ${c.phone}`:""}</p>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={()=>openEdit(c)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary active:bg-muted"><Pencil size={14}/></button>
+                    <button onClick={()=>setConfirmDeleteId(c.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-rose-400 active:bg-muted"><Trash2 size={14}/></button>
+                  </div>
+                </div>
+                {(st.receivable>0||st.payable>0)&&(
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="rounded-xl px-3 py-2 bg-emerald-500/10"><p className="text-[10px] text-muted-foreground">Вам должны</p><p className="text-xs font-bold font-mono text-emerald-400">{fmtUZS(st.receivable)}</p></div>
+                    <div className="rounded-xl px-3 py-2 bg-rose-500/10"><p className="text-[10px] text-muted-foreground">Вы должны</p><p className="text-xs font-bold font-mono text-rose-400">{fmtUZS(st.payable)}</p></div>
+                  </div>
+                )}
+                <button onClick={()=>setExpanded(isOpen?null:c.id)} className="text-[11px] text-muted-foreground mt-2">Оборот: {fmtUZS(st.turnover)} · {st.txs.length} операц. {isOpen?"▲":"▼"}</button>
+                {isOpen&&(
+                  <div className="mt-2 space-y-1.5 border-t border-border pt-2">
+                    {st.txs.length===0?<p className="text-[11px] text-muted-foreground">Нет операций</p>:[...st.txs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(t=>(
+                      <div key={t.id} className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground truncate flex-1">{t.category} · {new Date(t.date+"T12:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}</span><span className={`text-[11px] font-bold font-mono ${t.type==="income"?"text-emerald-400":"text-rose-400"}`}>{t.type==="income"?"+":"−"}{fmtMoney(t.amount,t.currency)}</span></div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {confirmDeleteId&&<ConfirmDialog title="Удалить контрагента?" message="Операции сохранятся, но потеряют привязку к контрагенту." onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
+
+      {showForm&&(
+        <Sheet title={editingId?"Редактировать контрагента":"Новый контрагент"} onClose={()=>{setShowForm(false);reset();}}>
+          <div className="space-y-4">
+            <Field label="Название"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="ООО Ромашка, Иван..." autoFocus/></Field>
+            <Field label="Тип">
+              <div className="grid grid-cols-3 gap-2">
+                {(["client","supplier","both"] as ContractorType[]).map(t=><button key={t} onClick={()=>setType(t)} className={`py-2.5 rounded-xl text-[11px] font-bold border-2 transition-all ${type===t?"border-primary bg-primary/5 text-primary":"border-border text-muted-foreground"}`}>{t==="client"?"Клиент":t==="supplier"?"Поставщик":"Оба"}</button>)}
+              </div>
+            </Field>
+            <Field label="Телефон"><Input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Необязательно" inputMode="tel"/></Field>
+            <Field label="Заметка"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Необязательно"/></Field>
+            <Btn onClick={async()=>{if(!name)return;setSaving(true);try{const payload={name,type,phone:phone||null,note:note||null};if(editingId){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowForm(false);reset();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name}>{saving?"...":editingId?"Сохранить":"Добавить"}</Btn>
           </div>
         </Sheet>
       )}
