@@ -133,6 +133,23 @@ export async function migrate() {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(user_id, endpoint)
       );
+
+      -- Ожидаемые доходы/траты (планирование, прогноз)
+      CREATE TABLE IF NOT EXISTS planned_items (
+        id TEXT PRIMARY KEY,
+        family_id TEXT NOT NULL,
+        type TEXT NOT NULL,                 -- income | expense
+        title TEXT NOT NULL,
+        amount NUMERIC NOT NULL,
+        currency TEXT DEFAULT 'UZS',
+        category TEXT DEFAULT '',
+        due_date TEXT NOT NULL,             -- YYYY-MM-DD
+        recurrence TEXT DEFAULT 'once',     -- once | monthly
+        status TEXT DEFAULT 'planned',      -- planned | done
+        note TEXT,
+        created_by_name TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
     console.log('✅ Database migrated');
 

@@ -3,7 +3,7 @@ import { Plus, TrendingUp, TrendingDown, Shield, Repeat, ArrowUpRight, ArrowDown
 import { Card, StatCard, SectionHeader } from "./ui";
 import { Tilt3D, useCountUp } from "./effects";
 import { TxSheet } from "./Journal";
-import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency } from "../../lib/api";
+import type { Transaction, Category, Goal, RecurringPayment, AppSettings, AppUser, Currency, PlannedItem } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
 const PIE_COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#14b8a6","#f97316","#84cc16","#8b5cf6"];
@@ -66,10 +66,10 @@ function AddFab({ onAdd }: { onAdd: (type: "income"|"expense") => void }) {
   );
 }
 
-export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,settings,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
+export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyMembers,categories,recurringPayments,plannedItems,settings,onSave,onMoreSection,onTabChange,darkMode,onToggleDark }: {
   transactions:Transaction[]; goals:Goal[];
   usdRate:number; userProfile:AppUser; familyMembers:AppUser[]; categories:Category[];
-  recurringPayments:RecurringPayment[]; settings:AppSettings;
+  recurringPayments:RecurringPayment[]; plannedItems:PlannedItem[]; settings:AppSettings;
   onSave:(t:any)=>Promise<void>; onMoreSection:(s:string)=>void; onTabChange:(t:TabType)=>void;
   darkMode:boolean; onToggleDark:()=>void;
 }) {
@@ -114,6 +114,13 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
 
   // Топ-категория расходов за месяц
   const topCat = Object.entries(expMap).sort((a,b)=>b[1]-a[1])[0];
+
+  // Прогноз: ожидаемые доходы/траты этого месяца (status planned, due в этом месяце)
+  const plannedThisMonth = plannedItems.filter(p=>p.status==="planned"&&p.due_date.startsWith(mk));
+  const expIncome = plannedThisMonth.filter(p=>p.type==="income").reduce((s,p)=>s+toUZS(p.amount,p.currency??"UZS",usdRate),0);
+  const expExpense = plannedThisMonth.filter(p=>p.type==="expense").reduce((s,p)=>s+toUZS(p.amount,p.currency??"UZS",usdRate),0);
+  const forecastEnd = balance + expIncome - expExpense; // прогноз итога месяца с учётом планов
+  const hasForecast = plannedThisMonth.length > 0;
 
   // Умные инсайты
   const insights: {icon:string; text:string; color:string}[] = [];
@@ -195,6 +202,29 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
         <StatCard label="Целей" value={`${completedGoals}/${goals.length}`} icon="🎯" onClick={()=>onTabChange("goals")}/>
         <StatCard label="Резерв" value={`${efMonths.toFixed(1)} мес`} icon="🛡" accent={efMonths>=6?"#10b981":efMonths>=3?"#f59e0b":"#ef4444"}/>
       </div>
+
+      {/* Прогноз итога месяца (по планам) */}
+      {hasForecast && (
+        <Card className="mx-4" onClick={()=>onMoreSection("planned")}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-sm">🔮</div>
+              <p className="text-sm font-bold">Прогноз итога месяца</p>
+            </div>
+            <span className="text-base font-bold font-mono" style={{color:forecastEnd>=0?"#34D399":"#FB7185"}}>{forecastEnd>=0?"+":"−"}{fmtUZS(Math.abs(forecastEnd))}</span>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 rounded-xl px-3 py-2" style={{background:"rgba(52,211,153,0.1)"}}>
+              <p className="text-[10px] text-muted-foreground">Ожидается дохода</p>
+              <p className="text-xs font-bold font-mono text-emerald-400">+{fmtUZS(expIncome)}</p>
+            </div>
+            <div className="flex-1 rounded-xl px-3 py-2" style={{background:"rgba(251,113,133,0.1)"}}>
+              <p className="text-[10px] text-muted-foreground">Ожидается трат</p>
+              <p className="text-xs font-bold font-mono text-rose-400">−{fmtUZS(expExpense)}</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Тренды */}
       {(expTrend !== 0 || incTrend !== 0) && prevExpense > 0 && (

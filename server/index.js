@@ -17,6 +17,7 @@ import settingsRouter from './routes/settings.js';
 import notificationsRouter from './routes/notifications.js';
 import commentsRouter from './routes/comments.js';
 import pushRouter from './routes/push.js';
+import plannedRouter from './routes/planned.js';
 
 dotenv.config();
 
@@ -68,6 +69,7 @@ app.use('/api/settings', authMiddleware, settingsRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
 app.use('/api/comments', authMiddleware, commentsRouter);
 app.use('/api/push', authMiddleware, pushRouter);
+app.use('/api/planned', authMiddleware, plannedRouter);
 
 // Serve React app in production
 const distPath = join(__dirname, '../dist');

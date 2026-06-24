@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Home, FileText, PiggyBank, Target, User, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { api } from "../lib/api";
 import { ymd } from "../lib/date";
-import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency } from "../lib/api";
+import type { AppUser, Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, Notification, TxType, Frequency, PlannedItem } from "../lib/api";
 import { Toast } from "./components/ui";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { LoginScreen } from "./components/Login";
@@ -12,10 +12,11 @@ import {
   SavingsScreen, GoalsScreen, AnalyticsScreen, BudgetsScreen, RecurringScreen,
   CalendarScreen, MonthlyReportScreen, SettingsScreen, AllocationScreen,
   CategoriesScreen, NotificationsScreen, FamilyScreen, ProfileScreen, ExportScreen,
+  PlannedScreen,
 } from "./components/Screens";
 
 type TabType = "dashboard" | "journal" | "savings" | "goals" | "more";
-type MoreSection = "profile"|"family"|"analytics"|"budgets"|"recurring"|"calendar"|"report"|"notifications"|"allocation"|"categories"|"export"|"settings";
+type MoreSection = "profile"|"family"|"analytics"|"budgets"|"recurring"|"planned"|"calendar"|"report"|"notifications"|"allocation"|"categories"|"export"|"settings";
 
 const fmt = (n:number) => new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(n);
 const fmtUZS = (n:number) => `${fmt(n)} сум`;
@@ -74,6 +75,8 @@ function MoreScreen(props: {
   onMarkNotifRead:(id:string)=>void; onMarkAllNotifRead:()=>void;
   onBudgetAdd:(b:any)=>Promise<void>; onBudgetDelete:(id:string)=>Promise<void>;
   onRecurringAdd:(p:any)=>Promise<void>; onRecurringDelete:(id:string)=>Promise<void>; onRecurringMarkPaid:(id:string)=>Promise<void>;
+  plannedItems:PlannedItem[];
+  onPlannedAdd:(p:any)=>Promise<void>; onPlannedEdit:(id:string,p:any)=>Promise<void>; onPlannedDelete:(id:string)=>Promise<void>; onPlannedConfirm:(id:string)=>Promise<void>;
   darkMode:boolean; onToggleDark:()=>void; onLogout:()=>void; defaultSection?:string;
 }) {
   const [section,setSection]=useState<MoreSection|null>((props.defaultSection as MoreSection)||null);
@@ -92,6 +95,7 @@ function MoreScreen(props: {
   if(section==="analytics") return <div><Back title="Аналитика"/><AnalyticsScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onDelete={props.onBudgetDelete} usdRate={props.usdRate}/></div>;
   if(section==="recurring") return <div><Back title="Регулярные платежи"/><RecurringScreen payments={props.recurringPayments} categories={props.categories} userName={props.userProfile.name} onAdd={props.onRecurringAdd} onDelete={props.onRecurringDelete} onMarkPaid={props.onRecurringMarkPaid}/></div>;
+  if(section==="planned") return <div><Back title="Планы и прогноз"/><PlannedScreen items={props.plannedItems} categories={props.categories} usdRate={props.usdRate} onAdd={props.onPlannedAdd} onEdit={props.onPlannedEdit} onDelete={props.onPlannedDelete} onConfirm={props.onPlannedConfirm}/></div>;
   if(section==="calendar") return <div><Back title="Финансовый календарь"/><CalendarScreen transactions={props.transactions} recurringPayments={props.recurringPayments}/></div>;
   if(section==="report") return <div><Back title="Ежемесячный отчёт"/><MonthlyReportScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="notifications") return <div><Back title="Уведомления"/><NotificationsScreen notifications={props.notifications} onMarkRead={props.onMarkNotifRead} onMarkAllRead={props.onMarkAllNotifRead}/></div>;
@@ -107,6 +111,7 @@ function MoreScreen(props: {
       {id:"report" as MoreSection,icon:"📋",label:"Ежемесячный отчёт",sub:"Отчёт с экспортом"},
     ]},
     {title:"Планирование",items:[
+      {id:"planned" as MoreSection,icon:"🔮",label:"Планы и прогноз",sub:`${props.plannedItems.filter(p=>p.status==="planned").length} ожидается`},
       {id:"budgets" as MoreSection,icon:"🎯",label:"Бюджеты",sub:`${props.budgets.length} лимитов`},
       {id:"recurring" as MoreSection,icon:"🔄",label:"Регулярные платежи",sub:`${props.recurringPayments.length} платежей`},
       {id:"allocation" as MoreSection,icon:"💎",label:"Распределение",sub:`${props.goals.length} целей`},
@@ -168,6 +173,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [plannedItems, setPlannedItems] = useState<PlannedItem[]>([]);
   const [darkMode, setDarkMode] = useState(()=>localStorage.getItem("theme")!=="light"); // тёмная тема по умолчанию
   const [toast, setToast] = useState<{msg:string;type:'success'|'error'|'warning'|'info'}|null>(null);
   const showToast = (msg:string, type:'success'|'error'|'warning'|'info'='info') => setToast({msg,type});
@@ -180,10 +186,10 @@ export default function App() {
     setLoading(true);
     try {
       // allSettled: сбой одного эндпоинта не обнуляет ВСЕ данные
-      const [txs,cats,gls,sets,notifs,recurs,buds,members] = await Promise.allSettled([
+      const [txs,cats,gls,sets,notifs,recurs,buds,members,planned] = await Promise.allSettled([
         api.transactions.list(), api.categories.list(), api.goals.list(),
         api.settings.get(), api.notifications.list(), api.recurring.list(),
-        api.budgets.list(), api.auth.familyMembers(),
+        api.budgets.list(), api.auth.familyMembers(), api.planned.list(),
       ]);
       if(txs.status==="fulfilled") setTransactions(txs.value);
       if(cats.status==="fulfilled") setCategories(cats.value);
@@ -193,7 +199,8 @@ export default function App() {
       if(recurs.status==="fulfilled") setRecurringPayments(recurs.value);
       if(buds.status==="fulfilled") setBudgets(buds.value);
       if(members.status==="fulfilled") setFamilyMembers(members.value);
-      const failed=[txs,cats,gls,sets,notifs,recurs,buds,members].filter(r=>r.status==="rejected");
+      if(planned.status==="fulfilled") setPlannedItems(planned.value);
+      const failed=[txs,cats,gls,sets,notifs,recurs,buds,members,planned].filter(r=>r.status==="rejected");
       if(failed.length) console.error("loadAll: часть запросов не удалась", failed);
     } catch(e) { console.error("loadAll", e); }
     finally { setLoading(false); }
@@ -277,6 +284,16 @@ export default function App() {
   const addRecurring = (p:any) => guard(async()=>{ const r=await api.recurring.create(p); setRecurringPayments(prev=>[...prev,r]); showToast('Платёж добавлен','success'); }, 'Не удалось добавить платёж');
   const deleteRecurring = (id:string) => guard(async()=>{ await api.recurring.delete(id); setRecurringPayments(prev=>prev.filter(r=>r.id!==id)); }, 'Не удалось удалить платёж');
 
+  const addPlanned = (p:any) => guard(async()=>{ const x=await api.planned.create(p); setPlannedItems(prev=>[...prev,x]); showToast(`${p.type==="income"?"📈 Ожидаемый доход":"📉 Ожидаемая трата"} добавлен`,'success'); }, 'Не удалось добавить план');
+  const updatePlanned = (id:string,p:any) => guard(async()=>{ const x=await api.planned.update(id,p); setPlannedItems(prev=>prev.map(i=>i.id===id?x:i)); showToast('План обновлён','success'); }, 'Не удалось обновить план');
+  const deletePlanned = (id:string) => guard(async()=>{ await api.planned.delete(id); setPlannedItems(prev=>prev.filter(i=>i.id!==id)); }, 'Не удалось удалить план');
+  const confirmPlanned = (id:string) => guard(async()=>{
+    const res=await api.planned.confirm(id);
+    setTransactions(prev=>[res.transaction,...prev]);
+    setPlannedItems(prev=>prev.map(i=>i.id===id?res.planned:i));
+    showToast('✅ План подтверждён — операция создана','success');
+  }, 'Не удалось подтвердить план');
+
   const markRecurringPaid = (id:string) => guard(async()=>{
     const p=recurringPayments.find(r=>r.id===id); if(!p) return;
     const nextDate=nextDateForFrequency(p.frequency,new Date(p.next_date));
@@ -289,7 +306,7 @@ export default function App() {
   const logout = () => {
     localStorage.removeItem("fb_token"); localStorage.removeItem("fb_session");
     setUserProfile(null); setTransactions([]); setCategories([]); setGoals([]);
-    setNotifications([]); setRecurringPayments([]); setBudgets([]);
+    setNotifications([]); setRecurringPayments([]); setBudgets([]); setPlannedItems([]);
   };
 
   const totalSavings = transactions.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",settings.usd_rate),0)
@@ -315,12 +332,13 @@ export default function App() {
     onSettingsUpdate:updateSettings, onMarkNotifRead:markNotifRead, onMarkAllNotifRead:markAllNotifRead,
     onBudgetAdd:addBudget, onBudgetDelete:deleteBudget, onRecurringAdd:addRecurring,
     onRecurringDelete:deleteRecurring, onRecurringMarkPaid:markRecurringPaid,
+    plannedItems, onPlannedAdd:addPlanned, onPlannedEdit:updatePlanned, onPlannedDelete:deletePlanned, onPlannedConfirm:confirmPlanned,
     darkMode, onToggleDark:()=>setDarkMode(d=>!d), onLogout:logout, defaultSection:moreDefaultSection,
   };
 
   const renderScreen = () => {
     switch(activeTab) {
-      case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
+      case "dashboard": return <DashboardScreen transactions={transactions} goals={goals} usdRate={settings.usd_rate} userProfile={userProfile} familyMembers={familyMembers} categories={categories} recurringPayments={recurringPayments} plannedItems={plannedItems} settings={settings} onSave={saveTransaction} onMoreSection={handleMoreSection} onTabChange={setActiveTab} darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)}/>;
       case "journal": return <JournalScreen transactions={transactions} categories={categories} onSave={saveTransaction} onDelete={deleteTransaction} currentUserId={userProfile.id} usdRate={settings.usd_rate}/>;
       case "savings": return <SavingsScreen transactions={transactions} usdRate={settings.usd_rate}/>;
       case "goals": return <GoalsScreen goals={goals} transactions={transactions} onAdd={addGoal} onEdit={updateGoal} onDelete={deleteGoal} onUpdateAllocation={updateAllocation} usdRate={settings.usd_rate}/>;

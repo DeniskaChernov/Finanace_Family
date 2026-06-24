@@ -98,6 +98,15 @@ export const api = {
     markAllRead: () => put<{ ok: boolean }>('/notifications/read-all', {}),
   },
 
+  // ── Planned (ожидаемые доходы/траты, прогноз) ─────────────────
+  planned: {
+    list: () => get<PlannedItem[]>('/planned'),
+    create: (p: PlannedPayload) => post<PlannedItem>('/planned', p),
+    update: (id: string, p: PlannedPayload) => put<PlannedItem>(`/planned/${id}`, p),
+    delete: (id: string) => del<{ ok: boolean }>(`/planned/${id}`),
+    confirm: (id: string) => post<{ transaction: Transaction; planned: PlannedItem }>(`/planned/${id}/confirm`, {}),
+  },
+
   // ── Comments ──────────────────────────────────────────────────
   comments: {
     list: (entityId: string) => get<Comment[]>(`/comments/${entityId}`),
@@ -161,6 +170,14 @@ export interface Comment {
   id: string; family_id: string; entity_type: string; entity_id: string;
   user_name: string; body: string; created_at: string;
 }
+export type PlannedRecurrence = 'once' | 'monthly';
+export type PlannedStatus = 'planned' | 'done';
+export interface PlannedItem {
+  id: string; family_id: string; type: TxType; title: string;
+  amount: number; currency: Currency; category: string; due_date: string;
+  recurrence: PlannedRecurrence; status: PlannedStatus; note: string | null;
+  created_by_name: string; created_at: string;
+}
 
 interface TxPayload {
   date: string; type: TxType; category: string; amount: number;
@@ -174,4 +191,8 @@ interface BudgetPayload { category: string; month_limit: number; month: string; 
 interface RecurringPayload {
   name: string; category: string; amount: number;
   frequency: Frequency; next_date: string;
+}
+interface PlannedPayload {
+  type: TxType; title: string; amount: number; currency?: Currency;
+  category?: string; due_date: string; recurrence?: PlannedRecurrence; note?: string;
 }

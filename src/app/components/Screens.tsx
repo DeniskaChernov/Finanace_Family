@@ -9,7 +9,7 @@ import { Card, StatCard, SectionHeader, Sheet, Field, Input, Select, Btn, Toggle
 import { usePush } from "../../lib/usePush";
 import { api } from "../../lib/api";
 import { ymd } from "../../lib/date";
-import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority } from "../../lib/api";
+import type { Transaction, Category, Goal, Budget, RecurringPayment, AppSettings, AppUser, Notification, Currency, TxType, Frequency, Priority, PlannedItem, PlannedRecurrence } from "../../lib/api";
 
 const MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
 const MONTHS_RU = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
@@ -942,5 +942,119 @@ export function ExportScreen({ transactions,goals }: { transactions:Transaction[
         </button>
       ))}
     </div></div>
+  );
+}
+
+// ── Planned / Forecast (ожидаемые доходы и траты) ─────────────────────
+export function PlannedScreen({ items,categories,usdRate,onAdd,onEdit,onDelete,onConfirm }: {
+  items:PlannedItem[]; categories:Category[]; usdRate:number;
+  onAdd:(p:any)=>Promise<void>; onEdit:(id:string,p:any)=>Promise<void>;
+  onDelete:(id:string)=>Promise<void>; onConfirm:(id:string)=>Promise<void>;
+}) {
+  const [showAdd,setShowAdd]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
+  const [type,setType]=useState<TxType>("income");
+  const [title,setTitle]=useState(""); const [amount,setAmount]=useState("");
+  const [currency,setCurrency]=useState<Currency>("UZS"); const [category,setCategory]=useState("");
+  const [dueDate,setDueDate]=useState(ymd()); const [recurrence,setRecurrence]=useState<PlannedRecurrence>("once");
+  const [note,setNote]=useState(""); const [saving,setSaving]=useState(false);
+  const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
+
+  const reset=()=>{setEditingId(null);setType("income");setTitle("");setAmount("");setCurrency("UZS");setCategory("");setDueDate(ymd());setRecurrence("once");setNote("");};
+  const openEdit=(p:PlannedItem)=>{setEditingId(p.id);setType(p.type);setTitle(p.title);setAmount(String(p.amount));setCurrency(p.currency);setCategory(p.category);setDueDate(p.due_date);setRecurrence(p.recurrence);setNote(p.note||"");setShowAdd(true);};
+
+  const mk=monthKey();
+  const planned=items.filter(p=>p.status==="planned");
+  const monthItems=planned.filter(p=>p.due_date.startsWith(mk));
+  const expIncome=monthItems.filter(p=>p.type==="income").reduce((s,p)=>s+toUZS(p.amount,p.currency,usdRate),0);
+  const expExpense=monthItems.filter(p=>p.type==="expense").reduce((s,p)=>s+toUZS(p.amount,p.currency,usdRate),0);
+  const forecastNet=expIncome-expExpense;
+  const upcoming=[...planned].sort((a,b)=>a.due_date.localeCompare(b.due_date));
+  const todayStr=ymd();
+  const cats=categories.filter(c=>c.type===type);
+  const accent=type==="income"?"#34D399":"#FB7185";
+  const fmtD=(d:string)=>new Date(d+"T12:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"short"});
+
+  return (
+    <div className="pb-24">
+      <div className="px-4 pb-3 flex items-center justify-between">
+        <div><h2 className="text-xl font-bold">Планы и прогноз</h2><p className="text-xs text-muted-foreground mt-0.5">Ожидаемые доходы и траты</p></div>
+        <button onClick={()=>{reset();setShowAdd(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
+      </div>
+
+      {/* Прогноз на месяц */}
+      <div className="mx-4 mb-4 rounded-3xl p-5 text-white relative overflow-hidden"
+        style={{background:forecastNet>=0?"linear-gradient(135deg,#6366f1,#8b5cf6)":"linear-gradient(135deg,#f59e0b,#ef4444)",boxShadow:"0 16px 48px rgba(99,102,241,0.3)"}}>
+        <p className="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">Прогноз итога месяца</p>
+        <p className="font-display leading-none" style={{fontSize:"clamp(1.4rem,7vw,2.2rem)",whiteSpace:"nowrap"}}>{forecastNet>=0?"+":"−"}{fmtUZS(Math.abs(forecastNet))}</p>
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="rounded-2xl px-3 py-2" style={{background:"rgba(255,255,255,0.12)"}}><p className="text-[10px] opacity-70">Ожид. доход</p><p className="text-sm font-bold font-mono text-emerald-200">+{fmtUZS(expIncome)}</p></div>
+          <div className="rounded-2xl px-3 py-2" style={{background:"rgba(255,255,255,0.12)"}}><p className="text-[10px] opacity-70">Ожид. траты</p><p className="text-sm font-bold font-mono text-rose-200">−{fmtUZS(expExpense)}</p></div>
+        </div>
+      </div>
+
+      {upcoming.length===0?(
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground"><div className="text-5xl mb-3 opacity-30">🔮</div><p className="text-sm">Нет запланированных доходов и трат</p><button onClick={()=>{reset();setShowAdd(true);}} className="mt-3 text-sm text-primary font-bold">+ Запланировать</button></div>
+      ):(
+        <div className="px-4 space-y-2">
+          {upcoming.map(p=>{
+            const overdue=p.due_date<todayStr;
+            const isInc=p.type==="income";
+            return (
+              <Card key={p.id} className="p-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg" style={{background:isInc?"rgba(52,211,153,0.14)":"rgba(251,113,133,0.14)"}}>{isInc?"📈":"📉"}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{p.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{p.category||"Без категории"} · {fmtD(p.due_date)}{p.recurrence==="monthly"?" · ежемес.":""}{overdue?" · просрочен":""}</p>
+                  </div>
+                  <span className={`text-sm font-bold font-mono flex-shrink-0 ${isInc?"text-emerald-400":"text-rose-400"}`}>{isInc?"+":"−"}{fmtMoney(p.amount,p.currency)}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                  <button onClick={()=>onConfirm(p.id)} className="flex-1 py-2 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5" style={{background:accent}}><CheckCircle size={13}/>Подтвердить</button>
+                  <button onClick={()=>openEdit(p)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-muted text-muted-foreground active:scale-95"><Pencil size={14}/></button>
+                  <button onClick={()=>setConfirmDeleteId(p.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:text-rose-400 active:scale-95"><Trash2 size={14}/></button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {confirmDeleteId&&<ConfirmDialog title="Удалить план?" onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
+
+      {showAdd&&(
+        <Sheet title={editingId?"Редактировать план":"Новый план"} onClose={()=>{setShowAdd(false);reset();}}>
+          <div className="space-y-4">
+            <div className="flex rounded-xl p-1 bg-muted">
+              {(["income","expense"] as TxType[]).map(t=>(
+                <button key={t} onClick={()=>{setType(t);setCategory("");}} className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all" style={type===t?{background:t==="income"?"#10b981":"#ef4444",color:"#fff"}:{color:"var(--muted-foreground)"}}>{t==="income"?"📈 Доход":"📉 Трата"}</button>
+              ))}
+            </div>
+            <Field label="Название"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder={type==="income"?"Зарплата, оплата клиента...":"Аренда, поставщик..."} autoFocus/></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Сумма"><Input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0" inputMode="decimal"/></Field>
+              <Field label="Валюта">
+                <Select value={currency} onChange={e=>setCurrency(e.target.value as Currency)}><option value="UZS">сум</option><option value="USD">$</option></Select>
+              </Field>
+            </div>
+            <Field label="Категория">
+              <Select value={category} onChange={e=>setCategory(e.target.value)}>
+                <option value="">Без категории</option>
+                {cats.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Дата"><Input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></Field>
+              <Field label="Повтор">
+                <Select value={recurrence} onChange={e=>setRecurrence(e.target.value as PlannedRecurrence)}><option value="once">Разово</option><option value="monthly">Ежемесячно</option></Select>
+              </Field>
+            </div>
+            <Field label="Заметка"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Необязательно"/></Field>
+            <Btn onClick={async()=>{if(!title||!amount)return;setSaving(true);try{const payload={type,title,amount:parseFloat(amount),currency,category,due_date:dueDate,recurrence,note:note||undefined};if(editingId){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);reset();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!title||!amount}>{saving?"...":editingId?"Сохранить":"Запланировать"}</Btn>
+          </div>
+        </Sheet>
+      )}
+    </div>
   );
 }
