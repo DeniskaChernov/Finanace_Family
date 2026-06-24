@@ -1059,6 +1059,81 @@ export function PlannedScreen({ items,categories,usdRate,onAdd,onEdit,onDelete,o
   );
 }
 
+// ── P&L (прибыль/убыток — бизнес-отчёт) ───────────────────────────────
+export function PnLScreen({ transactions,usdRate }: { transactions:Transaction[]; usdRate:number }) {
+  const [period,setPeriod]=useState<"month"|"quarter"|"year"|"all">("month");
+  const now=new Date();
+  const inPeriod=(d:string)=>{
+    if(period==="all") return true;
+    if(period==="month") return d.startsWith(monthKey());
+    const dt=new Date(d+"T12:00:00");
+    if(period==="year") return dt.getFullYear()===now.getFullYear();
+    const start=new Date(now.getFullYear(),now.getMonth()-2,1); // квартал = 3 мес.
+    return dt>=start;
+  };
+  const txs=transactions.filter(t=>inPeriod(t.date));
+  const uzs=(t:Transaction)=>toUZS(t.amount,t.currency??"UZS",usdRate);
+  const revenue=txs.filter(t=>t.type==="income").reduce((s,t)=>s+uzs(t),0);
+  const costs=txs.filter(t=>t.type==="expense").reduce((s,t)=>s+uzs(t),0);
+  const profit=revenue-costs;
+  const margin=revenue>0?Math.round(profit/revenue*100):0;
+  const byCat=(type:TxType)=>{
+    const m:Record<string,number>={};
+    txs.filter(t=>t.type===type).forEach(t=>{m[t.category||"Без категории"]=(m[t.category||"Без категории"]??0)+uzs(t);});
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  };
+  const revCats=byCat("income"); const costCats=byCat("expense");
+  const PERIODS=[["month","Месяц"],["quarter","Квартал"],["year","Год"],["all","Всё"]] as const;
+
+  return (
+    <div className="pb-24">
+      <div className="px-4 pb-3"><h2 className="text-xl font-bold">P&L · Прибыль / Убыток</h2><p className="text-xs text-muted-foreground mt-0.5">Выручка − расходы = прибыль</p></div>
+
+      <div className="px-4 mb-4">
+        <div className="flex rounded-xl p-1 bg-muted">
+          {PERIODS.map(([v,l])=><button key={v} onClick={()=>setPeriod(v)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${period===v?"bg-[var(--surface-2)] shadow-sm text-foreground":"text-muted-foreground"}`}>{l}</button>)}
+        </div>
+      </div>
+
+      {/* Прибыль hero */}
+      <div className="mx-4 mb-4 rounded-3xl p-5 text-white relative overflow-hidden"
+        style={{background:profit>=0?"linear-gradient(135deg,#10b981,#059669)":"linear-gradient(135deg,#ef4444,#dc2626)",boxShadow:"0 16px 48px rgba(16,185,129,0.25)"}}>
+        <p className="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{profit>=0?"Чистая прибыль":"Убыток"}</p>
+        <p className="font-display leading-none" style={{fontSize:"clamp(1.5rem,8vw,2.4rem)",whiteSpace:"nowrap"}}>{profit>=0?"+":"−"}{fmtUZS(Math.abs(profit))}</p>
+        <div className="flex items-center gap-2 mt-2"><span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/20">Маржа {margin}%</span></div>
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="rounded-2xl px-3 py-2" style={{background:"rgba(255,255,255,0.14)"}}><p className="text-[10px] opacity-70">Выручка</p><p className="text-sm font-bold font-mono">{fmtUZS(revenue)}</p></div>
+          <div className="rounded-2xl px-3 py-2" style={{background:"rgba(255,255,255,0.14)"}}><p className="text-[10px] opacity-70">Расходы</p><p className="text-sm font-bold font-mono">{fmtUZS(costs)}</p></div>
+        </div>
+      </div>
+
+      {txs.length===0&&<div className="text-center py-12 text-muted-foreground text-sm">Нет операций за период</div>}
+
+      {revCats.length>0&&(
+        <Card className="mx-4 mb-4 p-4">
+          <SectionHeader title="Выручка по статьям"/>
+          <div className="space-y-3">
+            {revCats.map(([cat,val])=>{const pct=revenue>0?Math.round(val/revenue*100):0;return(
+              <div key={cat}><div className="flex justify-between mb-1"><span className="text-xs font-semibold truncate flex-1">{cat}</span><span className="text-xs font-bold font-mono ml-2 text-emerald-400">{fmtUZS(val)} · {pct}%</span></div><div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full bg-emerald-400" style={{width:`${pct}%`}}/></div></div>
+            );})}
+          </div>
+        </Card>
+      )}
+
+      {costCats.length>0&&(
+        <Card className="mx-4 p-4">
+          <SectionHeader title="Расходы по статьям"/>
+          <div className="space-y-3">
+            {costCats.map(([cat,val])=>{const pct=costs>0?Math.round(val/costs*100):0;return(
+              <div key={cat}><div className="flex justify-between mb-1"><span className="text-xs font-semibold truncate flex-1">{cat}</span><span className="text-xs font-bold font-mono ml-2 text-rose-400">{fmtUZS(val)} · {pct}%</span></div><div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full bg-rose-400" style={{width:`${pct}%`}}/></div></div>
+            );})}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ── Spaces (пространства: личное и бизнесы) ───────────────────────────
 const SPACE_ICONS = ["🏠","💼","🏢","🛒","🍔","💻","📦","🚗","🏭","💰","🎨","📊"];
 const SPACE_COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#06b6d4","#8b5cf6","#ef4444","#14b8a6"];

@@ -12,11 +12,11 @@ import {
   SavingsScreen, GoalsScreen, AnalyticsScreen, BudgetsScreen, RecurringScreen,
   CalendarScreen, MonthlyReportScreen, SettingsScreen, AllocationScreen,
   CategoriesScreen, NotificationsScreen, FamilyScreen, ProfileScreen, ExportScreen,
-  PlannedScreen, SpacesScreen,
+  PlannedScreen, SpacesScreen, PnLScreen,
 } from "./components/Screens";
 
 type TabType = "dashboard" | "journal" | "savings" | "goals" | "more";
-type MoreSection = "profile"|"family"|"spaces"|"analytics"|"budgets"|"recurring"|"planned"|"calendar"|"report"|"notifications"|"allocation"|"categories"|"export"|"settings";
+type MoreSection = "profile"|"family"|"spaces"|"analytics"|"pnl"|"budgets"|"recurring"|"planned"|"calendar"|"report"|"notifications"|"allocation"|"categories"|"export"|"settings";
 
 const fmt = (n:number) => new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(n);
 const fmtUZS = (n:number) => `${fmt(n)} сум`;
@@ -96,6 +96,7 @@ function MoreScreen(props: {
   if(section==="family") return <div><Back title="Семья"/><FamilyScreen members={props.familyMembers} currentUser={props.userProfile}/></div>;
   if(section==="spaces") return <div><Back title="Пространства"/><SpacesScreen spaces={props.spaces} activeSpaceId={props.activeSpaceId} onSwitch={props.onSpaceSwitch} onAdd={props.onSpaceAdd} onEdit={props.onSpaceEdit} onDelete={props.onSpaceDelete}/></div>;
   if(section==="analytics") return <div><Back title="Аналитика"/><AnalyticsScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
+  if(section==="pnl") return <div><Back title="P&L · Прибыль/Убыток"/><PnLScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onDelete={props.onBudgetDelete} usdRate={props.usdRate}/></div>;
   if(section==="recurring") return <div><Back title="Регулярные платежи"/><RecurringScreen payments={props.recurringPayments} categories={props.categories} userName={props.userProfile.name} onAdd={props.onRecurringAdd} onDelete={props.onRecurringDelete} onMarkPaid={props.onRecurringMarkPaid}/></div>;
   if(section==="planned") return <div><Back title="Планы и прогноз"/><PlannedScreen items={props.plannedItems} categories={props.categories} usdRate={props.usdRate} onAdd={props.onPlannedAdd} onEdit={props.onPlannedEdit} onDelete={props.onPlannedDelete} onConfirm={props.onPlannedConfirm}/></div>;
@@ -109,6 +110,7 @@ function MoreScreen(props: {
 
   const groups = [
     {title:"Обзор",items:[
+      {id:"pnl" as MoreSection,icon:"💹",label:"P&L · Прибыль/Убыток",sub:"Выручка − расходы = прибыль"},
       {id:"analytics" as MoreSection,icon:"📊",label:"Аналитика",sub:"Графики, динамика"},
       {id:"calendar" as MoreSection,icon:"📅",label:"Финансовый календарь",sub:"Операции по дням"},
       {id:"report" as MoreSection,icon:"📋",label:"Ежемесячный отчёт",sub:"Отчёт с экспортом"},
