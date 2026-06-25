@@ -899,7 +899,15 @@ export function FamilyScreen({ members,currentUser }: { members:AppUser[]; curre
 }
 
 // ── Profile ───────────────────────────────────────────────────────────
-export function ProfileScreen({ userProfile,onLogout }: { userProfile:AppUser; onLogout:()=>void }) {
+export function ProfileScreen({ userProfile,onLogout,onChangePassword,onUpdateProfile }: {
+  userProfile:AppUser; onLogout:()=>void;
+  onChangePassword?:(o:string,n:string)=>Promise<void>; onUpdateProfile?:(p:{name?:string;phone?:string;color?:string})=>Promise<void>;
+}) {
+  const [editProfile,setEditProfile]=useState(false);
+  const [name,setName]=useState(userProfile.name); const [phone,setPhone]=useState(userProfile.phone||"");
+  const [changePw,setChangePw]=useState(false);
+  const [oldPw,setOldPw]=useState(""); const [newPw,setNewPw]=useState(""); const [showPw,setShowPw]=useState(false);
+  const [saving,setSaving]=useState(false);
   return (
     <div className="pb-4">
       <div className="px-4 pb-4"><h2 className="text-xl font-bold">Профиль</h2></div>
@@ -912,13 +920,41 @@ export function ProfileScreen({ userProfile,onLogout }: { userProfile:AppUser; o
           {[{l:"Имя",v:userProfile.name},{l:"Телефон",v:userProfile.phone||"Не указан"},{l:"Роль",v:userProfile.role==="owner"?"Владелец":"Участник"}].map(item=>(
             <div key={item.l} className="flex justify-between items-center py-2 border-b border-border last:border-0"><span className="text-sm text-muted-foreground">{item.l}</span><span className="text-sm font-semibold">{item.v}</span></div>
           ))}
+          {onUpdateProfile&&<button onClick={()=>{setName(userProfile.name);setPhone(userProfile.phone||"");setEditProfile(true);}} className="text-sm text-primary font-bold pt-1">Редактировать профиль →</button>}
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2"><Shield size={15} className="text-primary"/><p className="text-sm font-bold">Безопасность</p></div>
-          {["JWT-авторизация","Изоляция данных по семье","История изменений сохраняется"].map(i=><div key={i} className="flex items-center gap-2 text-xs text-muted-foreground py-0.5"><CheckCircle size={11} className="text-emerald-500"/>{i}</div>)}
-        </Card>
+
+        {onChangePassword&&(
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2"><Shield size={15} className="text-primary"/><p className="text-sm font-bold">Пароль</p></div>
+              <button onClick={()=>{setOldPw("");setNewPw("");setChangePw(true);}} className="text-sm text-primary font-bold">Сменить</button>
+            </div>
+          </Card>
+        )}
+
         <Btn variant="danger" onClick={onLogout}><div className="flex items-center justify-center gap-2"><LogOut size={16}/>Выйти из аккаунта</div></Btn>
       </div>
+
+      {editProfile&&onUpdateProfile&&(
+        <Sheet title="Редактировать профиль" onClose={()=>setEditProfile(false)}>
+          <div className="space-y-4">
+            <Field label="Имя"><Input value={name} onChange={e=>setName(e.target.value)} autoFocus/></Field>
+            <Field label="Телефон"><Input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Необязательно" inputMode="tel"/></Field>
+            <Btn onClick={async()=>{if(!name.trim())return;setSaving(true);try{await onUpdateProfile({name:name.trim(),phone:phone||undefined});setEditProfile(false);}catch{/* тост */}finally{setSaving(false);}}} disabled={saving||!name.trim()}>{saving?"...":"Сохранить"}</Btn>
+          </div>
+        </Sheet>
+      )}
+
+      {changePw&&onChangePassword&&(
+        <Sheet title="Смена пароля" onClose={()=>setChangePw(false)}>
+          <div className="space-y-4">
+            <Field label="Текущий пароль"><Input type={showPw?"text":"password"} value={oldPw} onChange={e=>setOldPw(e.target.value)} autoFocus/></Field>
+            <Field label="Новый пароль"><Input type={showPw?"text":"password"} value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="Мин. 4 символа"/></Field>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showPw} onChange={e=>setShowPw(e.target.checked)}/>Показать пароли</label>
+            <Btn onClick={async()=>{if(!newPw||newPw.length<4)return;setSaving(true);try{await onChangePassword(oldPw,newPw);setChangePw(false);}catch{/* тост */}finally{setSaving(false);}}} disabled={saving||!newPw||newPw.length<4}>{saving?"...":"Изменить пароль"}</Btn>
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }

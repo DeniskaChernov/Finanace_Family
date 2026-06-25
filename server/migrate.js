@@ -202,10 +202,11 @@ export async function migrate() {
     //    Если family_id = NULL, то WHERE family_id=$1 в SQL возвращает пусто
     //    (NULL = NULL → ложь) — отсюда «0 категорий» и пропавшие данные.
     await client.query(`
-      UPDATE users SET password_hash = '$2a$10$4PH7DEqDO8dsKCUziayagenhssnnCmyFnTaRacGMm3ig1m3oahgG.', family_id = 'fam-001'
-      WHERE id = 'usr-001';
-      UPDATE users SET password_hash = '$2a$10$HubmM.A9gQNPnYwc9vtn/uKfNJZTJIFfQfPJ9PLfAhAUvGA0jAO46', family_id = 'fam-001'
-      WHERE id = 'usr-002';
+      UPDATE users SET password_hash = '$2a$10$4PH7DEqDO8dsKCUziayagenhssnnCmyFnTaRacGMm3ig1m3oahgG.'
+      WHERE id = 'usr-001' AND (password_hash IS NULL OR password_hash = '');
+      UPDATE users SET password_hash = '$2a$10$HubmM.A9gQNPnYwc9vtn/uKfNJZTJIFfQfPJ9PLfAhAUvGA0jAO46'
+      WHERE id = 'usr-002' AND (password_hash IS NULL OR password_hash = '');
+      UPDATE users SET family_id = 'fam-001' WHERE id IN ('usr-001','usr-002');
       UPDATE users SET family_id = 'fam-001' WHERE family_id IS NULL;
     `);
 

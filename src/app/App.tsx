@@ -81,6 +81,7 @@ function MoreScreen(props: {
   onSpaceSwitch:(id:string)=>void; onSpaceAdd:(s:any)=>Promise<void>; onSpaceEdit:(id:string,s:any)=>Promise<void>; onSpaceDelete:(id:string)=>Promise<void>;
   contractors:Contractor[];
   onContractorAdd:(c:any)=>Promise<void>; onContractorEdit:(id:string,c:any)=>Promise<void>; onContractorDelete:(id:string)=>Promise<void>;
+  onChangePassword:(o:string,n:string)=>Promise<void>; onUpdateProfile:(p:{name?:string;phone?:string;color?:string})=>Promise<void>;
   darkMode:boolean; onToggleDark:()=>void; onLogout:()=>void; defaultSection?:string;
 }) {
   const [section,setSection]=useState<MoreSection|null>((props.defaultSection as MoreSection)||null);
@@ -94,7 +95,7 @@ function MoreScreen(props: {
     </div>
   );
 
-  if(section==="profile") return <div><Back title="Профиль"/><ProfileScreen userProfile={props.userProfile} onLogout={props.onLogout}/></div>;
+  if(section==="profile") return <div><Back title="Профиль"/><ProfileScreen userProfile={props.userProfile} onLogout={props.onLogout} onChangePassword={props.onChangePassword} onUpdateProfile={props.onUpdateProfile}/></div>;
   if(section==="family") return <div><Back title="Семья"/><FamilyScreen members={props.familyMembers} currentUser={props.userProfile}/></div>;
   if(section==="spaces") return <div><Back title="Пространства"/><SpacesScreen spaces={props.spaces} activeSpaceId={props.activeSpaceId} onSwitch={props.onSpaceSwitch} onAdd={props.onSpaceAdd} onEdit={props.onSpaceEdit} onDelete={props.onSpaceDelete}/></div>;
   if(section==="analytics") return <div><Back title="Аналитика"/><AnalyticsScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
@@ -364,6 +365,15 @@ export default function App() {
     showToast('Платёж отмечен оплаченным','success');
   }, 'Не удалось отметить платёж');
 
+  const changePassword = (oldP:string,newP:string) => guard(async()=>{
+    await api.auth.changePassword(oldP,newP); showToast('Пароль изменён','success');
+  }, 'Не удалось изменить пароль');
+  const updateProfile = (p:{name?:string;phone?:string;color?:string}) => guard(async()=>{
+    const u=await api.auth.updateProfile(p);
+    setUserProfile(u); localStorage.setItem("fb_session",JSON.stringify(u));
+    showToast('Профиль обновлён','success');
+  }, 'Не удалось обновить профиль');
+
   const logout = () => {
     localStorage.removeItem("fb_token"); localStorage.removeItem("fb_session");
     setUserProfile(null); setTransactions([]); setCategories([]); setGoals([]);
@@ -397,6 +407,7 @@ export default function App() {
     plannedItems, onPlannedAdd:addPlanned, onPlannedEdit:updatePlanned, onPlannedDelete:deletePlanned, onPlannedConfirm:confirmPlanned,
     spaces, activeSpaceId, onSpaceSwitch:switchSpace, onSpaceAdd:addSpace, onSpaceEdit:updateSpace, onSpaceDelete:deleteSpace,
     contractors, onContractorAdd:addContractor, onContractorEdit:updateContractor, onContractorDelete:deleteContractor,
+    onChangePassword:changePassword, onUpdateProfile:updateProfile,
     darkMode, onToggleDark:()=>setDarkMode(d=>!d), onLogout:logout, defaultSection:moreDefaultSection,
   };
 

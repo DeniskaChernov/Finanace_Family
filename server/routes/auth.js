@@ -60,6 +60,34 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// POST /api/auth/change-password
+router.post('/change-password', authMiddleware, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!newPassword || String(newPassword).length < 4) return res.status(400).json({ error: 'Новый пароль слишком короткий (мин. 4 символа)' });
+  try {
+    const { rows } = await pool.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Пользователь не найден' });
+    const ok = await bcrypt.compare(oldPassword || '', rows[0].password_hash);
+    if (!ok) return res.status(401).json({ error: 'Неверный текущий пароль' });
+    const hash = await bcrypt.hash(String(newPassword), 10);
+    await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/auth/profile — имя, телефон, цвет аватара
+router.put('/profile', authMiddleware, async (req, res) => {
+  const { name, phone, color } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE users SET name=COALESCE($1,name), phone=$2, color=COALESCE($3,color)
+       WHERE id=$4 RETURNING id,name,phone,family_id,role,avatar,color,created_at`,
+      [name ?? null, phone ?? null, color ?? null, req.user.id]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/auth/family-members
 router.get('/family-members', authMiddleware, async (req, res) => {
   const fid = req.account; // стабильный аккаунт, не активное пространство

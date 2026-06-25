@@ -76,7 +76,9 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
   darkMode:boolean; onToggleDark:()=>void;
 }) {
   const [addType, setAddType] = useState<"income"|"expense"|null>(null);
+  const [quickCat, setQuickCat] = useState<string|undefined>(undefined);
   const [showSpaces, setShowSpaces] = useState(false);
+  const quickActions = (settings.quick_actions||"").split(",").map(s=>s.trim()).filter(Boolean).slice(0,6);
   const activeSpace = spaces.find(s=>s.id===activeSpaceId) || spaces[0];
   const now = new Date(); const mk = monthKey();
   const monthTx = transactions.filter(t=>t.date.startsWith(mk));
@@ -203,6 +205,20 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
           </div>
         </Tilt3D>
       </div>
+
+      {/* Быстрые операции */}
+      {quickActions.length>0 && (
+        <div className="px-4">
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{scrollbarWidth:"none"}}>
+            {quickActions.map(cat=>(
+              <button key={cat} onClick={()=>{setQuickCat(cat);setAddType("expense");}}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full glass-card text-xs font-bold active:scale-95 transition-transform">
+                <span className="text-base">⚡</span>{cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick stats bento */}
       <div className="px-4 grid grid-cols-3 gap-2">
@@ -411,8 +427,9 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
           categories={categories}
           contractors={contractors}
           initialType={addType}
-          onSave={async (payload) => { await onSave(payload); setAddType(null); }}
-          onClose={() => setAddType(null)}
+          initialCategory={quickCat}
+          onSave={async (payload) => { await onSave(payload); setAddType(null); setQuickCat(undefined); }}
+          onClose={() => { setAddType(null); setQuickCat(undefined); }}
           usdRate={usdRate}
         />
       )}

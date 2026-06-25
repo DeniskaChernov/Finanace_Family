@@ -135,13 +135,13 @@ function TxRow({ t, currentUserId, usdRate, onEdit, onDelete }: {
   );
 }
 
-export function TxSheet({ categories,contractors=[],initial,initialType,onSave,onClose,usdRate }: {
-  categories:Category[]; contractors?:Contractor[]; initial?:Transaction; initialType?:"income"|"expense";
+export function TxSheet({ categories,contractors=[],initial,initialType,initialCategory,onSave,onClose,usdRate }: {
+  categories:Category[]; contractors?:Contractor[]; initial?:Transaction; initialType?:"income"|"expense"; initialCategory?:string;
   onSave:(t:any,id?:string)=>Promise<void>; onClose:()=>void; usdRate:number;
 }) {
   const [type,setType] = useState<TxType>(initial?.type??initialType??"expense");
   const [currency,setCurrency] = useState<Currency>(initial?.currency??"UZS");
-  const [category,setCategory] = useState(initial?.category??"");
+  const [category,setCategory] = useState(initial?.category??initialCategory??"");
   const [amount,setAmount] = useState(initial?String(initial.amount):"");
   const [date,setDate] = useState(initial?.date??ymd());
   const [desc,setDesc] = useState(initial?.description??"");

@@ -57,6 +57,10 @@ export const api = {
       post<{ token: string; user: AppUser }>('/auth/login', { name, password }),
     me: () => get<AppUser>('/auth/me'),
     familyMembers: () => get<AppUser[]>('/auth/family-members'),
+    changePassword: (oldPassword: string, newPassword: string) =>
+      post<{ ok: boolean }>('/auth/change-password', { oldPassword, newPassword }),
+    updateProfile: (p: { name?: string; phone?: string; color?: string }) =>
+      put<AppUser>('/auth/profile', p),
   },
 
   // ── Transactions ──────────────────────────────────────────────
