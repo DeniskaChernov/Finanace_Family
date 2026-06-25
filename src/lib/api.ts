@@ -88,6 +88,7 @@ export const api = {
   budgets: {
     list: () => get<Budget[]>('/budgets'),
     create: (b: BudgetPayload) => post<Budget>('/budgets', b),
+    update: (id: string, b: BudgetPayload) => put<Budget>(`/budgets/${id}`, b),
     delete: (id: string) => del<{ ok: boolean }>(`/budgets/${id}`),
   },
 
@@ -95,6 +96,7 @@ export const api = {
   recurring: {
     list: () => get<RecurringPayment[]>('/recurring'),
     create: (p: RecurringPayload) => post<RecurringPayment>('/recurring', p),
+    update: (id: string, p: RecurringPayload) => put<RecurringPayment>(`/recurring/${id}`, p),
     delete: (id: string) => del<{ ok: boolean }>(`/recurring/${id}`),
     markPaid: (id: string, next_date: string) =>
       post<RecurringPayment>(`/recurring/${id}/mark-paid`, { next_date }),

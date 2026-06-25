@@ -379,13 +379,16 @@ export function AnalyticsScreen({ transactions,usdRate }: { transactions:Transac
 }
 
 // ── Budgets ───────────────────────────────────────────────────────────
-export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete,usdRate=12700 }: {
+export function BudgetsScreen({ budgets,transactions,categories,onAdd,onEdit,onDelete,usdRate=12700 }: {
   budgets:Budget[]; transactions:Transaction[]; categories:Category[];
-  onAdd:(b:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>; usdRate?:number;
+  onAdd:(b:any)=>Promise<void>; onEdit?:(id:string,b:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>; usdRate?:number;
 }) {
   const [showAdd,setShowAdd]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
   const [cat,setCat]=useState(""); const [limit,setLimit]=useState(""); const [saving,setSaving]=useState(false);
   const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
+  const resetForm=()=>{setEditingId(null);setCat("");setLimit("");};
+  const openEdit=(b:Budget)=>{setEditingId(b.id);setCat(b.category);setLimit(String(b.month_limit));setShowAdd(true);};
   const mk=monthKey();
   const expCats=categories.filter(c=>c.type==="expense");
   // Конвертируем в сумы — иначе трата в USD считается по номиналу и занижает расход
@@ -395,7 +398,7 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete,u
     <div className="pb-4">
       <div className="px-4 pb-4 flex items-center justify-between">
         <div><h2 className="text-xl font-bold">Бюджеты</h2><p className="text-xs text-muted-foreground">Лимиты на {MONTHS_RU[parseInt(mk.split("-")[1])-1]}</p></div>
-        <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
+        <button onClick={()=>{resetForm();setShowAdd(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
       </div>
       {monthBudgets.length===0?(
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground"><BarChart2 size={48} className="mb-3 opacity-20"/><p className="text-sm">Нет бюджетов на этот месяц</p></div>
@@ -411,6 +414,7 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete,u
                   <div><p className="text-sm font-bold">{b.category}</p><p className="text-xs text-muted-foreground">Лимит: {fmtUZS(b.month_limit)}</p></div>
                   <div className="flex items-center gap-2">
                     {over&&<span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1"><AlertTriangle size={9}/>Превышен</span>}
+                    {onEdit&&<button onClick={()=>openEdit(b)} className="text-muted-foreground hover:text-primary p-1"><Pencil size={13}/></button>}
                     <button onClick={()=>setConfirmDeleteId(b.id)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>
                   </div>
                 </div>
@@ -433,16 +437,16 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete,u
       )}
       {confirmDeleteId&&<ConfirmDialog title="Удалить бюджет?" onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
       {showAdd&&(
-        <Sheet title="Новый бюджет" onClose={()=>setShowAdd(false)}>
+        <Sheet title={editingId?"Редактировать бюджет":"Новый бюджет"} onClose={()=>{setShowAdd(false);resetForm();}}>
           <div className="space-y-4">
             <Field label="Категория расходов">
-              <Select value={cat} onChange={e=>setCat(e.target.value)}>
+              <Select value={cat} onChange={e=>setCat(e.target.value)} disabled={!!editingId}>
                 <option value="">Выберите</option>
-                {expCats.filter(c=>!monthBudgets.some(b=>b.category===c.name)).map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
+                {expCats.filter(c=>c.name===cat||!monthBudgets.some(b=>b.category===c.name)).map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
               </Select>
             </Field>
             <Field label="Лимит на месяц"><Input type="number" value={limit} onChange={e=>setLimit(e.target.value)} placeholder="0" inputMode="decimal" autoFocus/></Field>
-            <Btn onClick={async()=>{if(!cat||!limit)return;setSaving(true);try{await onAdd({category:cat,month_limit:parseFloat(limit),month:mk});setShowAdd(false);setCat("");setLimit("");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!cat||!limit}>{saving?"...":"Создать бюджет"}</Btn>
+            <Btn onClick={async()=>{if(!cat||!limit)return;setSaving(true);try{const payload={category:cat,month_limit:parseFloat(limit),month:mk};if(editingId&&onEdit){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);resetForm();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!cat||!limit}>{saving?"...":editingId?"Сохранить":"Создать бюджет"}</Btn>
           </div>
         </Sheet>
       )}
@@ -451,15 +455,18 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onDelete,u
 }
 
 // ── Recurring ─────────────────────────────────────────────────────────
-export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,onMarkPaid }: {
+export function RecurringScreen({ payments,categories,userName,onAdd,onEdit,onDelete,onMarkPaid }: {
   payments:RecurringPayment[]; categories:Category[]; userName:string;
-  onAdd:(p:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>; onMarkPaid:(id:string)=>Promise<void>;
+  onAdd:(p:any)=>Promise<void>; onEdit?:(id:string,p:any)=>Promise<void>; onDelete:(id:string)=>Promise<void>; onMarkPaid:(id:string)=>Promise<void>;
 }) {
   const [showAdd,setShowAdd]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
   const [name,setName]=useState(""); const [cat,setCat]=useState(""); const [amount,setAmount]=useState("");
   const [freq,setFreq]=useState<Frequency>("monthly"); const [nextDate,setNextDate]=useState(ymd());
   const [saving,setSaving]=useState(false);
   const [confirmDeleteId,setConfirmDeleteId]=useState<string|null>(null);
+  const resetForm=()=>{setEditingId(null);setName("");setCat("");setAmount("");setFreq("monthly");setNextDate(ymd());};
+  const openEdit=(p:RecurringPayment)=>{setEditingId(p.id);setName(p.name);setCat(p.category);setAmount(String(p.amount));setFreq(p.frequency);setNextDate(p.next_date);setShowAdd(true);};
   const sorted=[...payments].filter(p=>p.active).sort((a,b)=>a.next_date.localeCompare(b.next_date));
   const totalMonthly=payments.filter(p=>p.active).reduce((s,p)=>{
     if(p.frequency==="monthly") return s+p.amount;
@@ -471,7 +478,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
     <div className="pb-4">
       <div className="px-4 pb-4 flex items-center justify-between">
         <div><h2 className="text-xl font-bold">Регулярные платежи</h2><p className="text-xs text-muted-foreground">{fmtUZS(totalMonthly)}/мес.</p></div>
-        <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
+        <button onClick={()=>{resetForm();setShowAdd(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
       </div>
       {sorted.length===0?(
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground"><Repeat size={48} className="mb-3 opacity-20"/><p className="text-sm">Нет регулярных платежей</p></div>
@@ -495,8 +502,9 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
                       <span className={`text-xs font-semibold ${urgent?"text-rose-400":days<=7?"text-amber-400":"text-muted-foreground"}`}>
                         {days<0?"Просрочен":days===0?"Сегодня!":days===1?"Завтра":`Через ${days} дн.`} · {new Date(p.next_date).toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}
                       </span>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
                         <button onClick={()=>onMarkPaid(p.id)} className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">✓ Оплачено</button>
+                        {onEdit&&<button onClick={()=>openEdit(p)} className="text-muted-foreground hover:text-primary p-1"><Pencil size={13}/></button>}
                         <button onClick={()=>setConfirmDeleteId(p.id)} className="text-muted-foreground hover:text-rose-400 p-1"><Trash2 size={13}/></button>
                       </div>
                     </div>
@@ -509,7 +517,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
       )}
       {confirmDeleteId&&<ConfirmDialog title="Удалить платёж?" onConfirm={()=>{onDelete(confirmDeleteId);setConfirmDeleteId(null);}} onCancel={()=>setConfirmDeleteId(null)}/>}
       {showAdd&&(
-        <Sheet title="Новый регулярный платёж" onClose={()=>setShowAdd(false)}>
+        <Sheet title={editingId?"Редактировать платёж":"Новый регулярный платёж"} onClose={()=>{setShowAdd(false);resetForm();}}>
           <div className="space-y-4">
             <Field label="Название"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Интернет, кредит..." autoFocus/></Field>
             <Field label="Категория">
@@ -525,7 +533,7 @@ export function RecurringScreen({ payments,categories,userName,onAdd,onDelete,on
               </div>
             </Field>
             <Field label="Следующая дата"><Input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)}/></Field>
-            <Btn onClick={async()=>{if(!name||!amount)return;setSaving(true);try{await onAdd({name,category:cat||"Прочее",amount:parseFloat(amount),frequency:freq,next_date:nextDate});setShowAdd(false);setName("");setCat("");setAmount("");setFreq("monthly");}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name||!amount}>{saving?"...":"Добавить"}</Btn>
+            <Btn onClick={async()=>{if(!name||!amount)return;setSaving(true);try{const payload={name,category:cat||"Прочее",amount:parseFloat(amount),frequency:freq,next_date:nextDate};if(editingId&&onEdit){await onEdit(editingId,payload);}else{await onAdd(payload);}setShowAdd(false);resetForm();}catch{/* тост показан */}finally{setSaving(false);}}} disabled={saving||!name||!amount}>{saving?"...":editingId?"Сохранить":"Добавить"}</Btn>
           </div>
         </Sheet>
       )}

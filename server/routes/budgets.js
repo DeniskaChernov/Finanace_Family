@@ -25,6 +25,19 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+router.put('/:id', async (req, res) => {
+  const { family_id } = req.user;
+  const { category, month_limit, month } = req.body;
+  try {
+    const { rows } = await pool.query(
+      'UPDATE budgets SET category=$1,month_limit=$2,month=$3 WHERE id=$4 AND family_id=$5 RETURNING *',
+      [category, month_limit, month, req.params.id, family_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Не найдено' });
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.delete('/:id', async (req, res) => {
   const { family_id } = req.user;
   try {

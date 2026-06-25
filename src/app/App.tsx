@@ -73,8 +73,8 @@ function MoreScreen(props: {
   onCategoryAdd:(n:string,t:TxType)=>Promise<void>; onCategoryDelete:(id:string)=>Promise<void>;
   onSettingsUpdate:(s:Partial<AppSettings>)=>Promise<void>;
   onMarkNotifRead:(id:string)=>void; onMarkAllNotifRead:()=>void;
-  onBudgetAdd:(b:any)=>Promise<void>; onBudgetDelete:(id:string)=>Promise<void>;
-  onRecurringAdd:(p:any)=>Promise<void>; onRecurringDelete:(id:string)=>Promise<void>; onRecurringMarkPaid:(id:string)=>Promise<void>;
+  onBudgetAdd:(b:any)=>Promise<void>; onBudgetEdit:(id:string,b:any)=>Promise<void>; onBudgetDelete:(id:string)=>Promise<void>;
+  onRecurringAdd:(p:any)=>Promise<void>; onRecurringEdit:(id:string,p:any)=>Promise<void>; onRecurringDelete:(id:string)=>Promise<void>; onRecurringMarkPaid:(id:string)=>Promise<void>;
   plannedItems:PlannedItem[];
   onPlannedAdd:(p:any)=>Promise<void>; onPlannedEdit:(id:string,p:any)=>Promise<void>; onPlannedDelete:(id:string)=>Promise<void>; onPlannedConfirm:(id:string)=>Promise<void>;
   spaces:Space[]; activeSpaceId:string;
@@ -100,8 +100,8 @@ function MoreScreen(props: {
   if(section==="analytics") return <div><Back title="Аналитика"/><AnalyticsScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="pnl") return <div><Back title="P&L · Прибыль/Убыток"/><PnLScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
   if(section==="contractors") return <div><Back title="Контрагенты"/><ContractorsScreen contractors={props.contractors} transactions={props.transactions} plannedItems={props.plannedItems} usdRate={props.usdRate} onAdd={props.onContractorAdd} onEdit={props.onContractorEdit} onDelete={props.onContractorDelete}/></div>;
-  if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onDelete={props.onBudgetDelete} usdRate={props.usdRate}/></div>;
-  if(section==="recurring") return <div><Back title="Регулярные платежи"/><RecurringScreen payments={props.recurringPayments} categories={props.categories} userName={props.userProfile.name} onAdd={props.onRecurringAdd} onDelete={props.onRecurringDelete} onMarkPaid={props.onRecurringMarkPaid}/></div>;
+  if(section==="budgets") return <div><Back title="Бюджеты"/><BudgetsScreen budgets={props.budgets} transactions={props.transactions} categories={props.categories} onAdd={props.onBudgetAdd} onEdit={props.onBudgetEdit} onDelete={props.onBudgetDelete} usdRate={props.usdRate}/></div>;
+  if(section==="recurring") return <div><Back title="Регулярные платежи"/><RecurringScreen payments={props.recurringPayments} categories={props.categories} userName={props.userProfile.name} onAdd={props.onRecurringAdd} onEdit={props.onRecurringEdit} onDelete={props.onRecurringDelete} onMarkPaid={props.onRecurringMarkPaid}/></div>;
   if(section==="planned") return <div><Back title="Планы и прогноз"/><PlannedScreen items={props.plannedItems} categories={props.categories} contractors={props.contractors} usdRate={props.usdRate} onAdd={props.onPlannedAdd} onEdit={props.onPlannedEdit} onDelete={props.onPlannedDelete} onConfirm={props.onPlannedConfirm}/></div>;
   if(section==="calendar") return <div><Back title="Финансовый календарь"/><CalendarScreen transactions={props.transactions} recurringPayments={props.recurringPayments}/></div>;
   if(section==="report") return <div><Back title="Ежемесячный отчёт"/><MonthlyReportScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
@@ -111,24 +111,30 @@ function MoreScreen(props: {
   if(section==="export") return <div><Back title="Экспорт"/><ExportScreen transactions={props.transactions} goals={props.goals}/></div>;
   if(section==="settings") return <div><Back title="Настройки"/><SettingsScreen settings={props.settings} onUpdate={props.onSettingsUpdate} darkMode={props.darkMode} onToggleDark={props.onToggleDark}/></div>;
 
+  const activeSpace = props.spaces.find(s=>s.id===props.activeSpaceId) || props.spaces[0];
+  const isBusiness = activeSpace?.type==="business";
+
   const groups = [
-    {title:"Обзор",items:[
+    // Бизнес-блок — только в бизнес-пространстве
+    ...(isBusiness ? [{title:"Бизнес",items:[
       {id:"pnl" as MoreSection,icon:"💹",label:"P&L · Прибыль/Убыток",sub:"Выручка − расходы = прибыль"},
+      {id:"contractors" as MoreSection,icon:"🤝",label:"Контрагенты",sub:`${props.contractors.length} · клиенты, поставщики`},
+    ]}] : []),
+    {title:"Обзор",items:[
       {id:"analytics" as MoreSection,icon:"📊",label:"Аналитика",sub:"Графики, динамика"},
       {id:"calendar" as MoreSection,icon:"📅",label:"Финансовый календарь",sub:"Операции по дням"},
       {id:"report" as MoreSection,icon:"📋",label:"Ежемесячный отчёт",sub:"Отчёт с экспортом"},
     ]},
     {title:"Планирование",items:[
       {id:"planned" as MoreSection,icon:"🔮",label:"Планы и прогноз",sub:`${props.plannedItems.filter(p=>p.status==="planned").length} ожидается`},
-      {id:"contractors" as MoreSection,icon:"🤝",label:"Контрагенты",sub:`${props.contractors.length} · клиенты, поставщики`},
       {id:"budgets" as MoreSection,icon:"🎯",label:"Бюджеты",sub:`${props.budgets.length} лимитов`},
-      {id:"recurring" as MoreSection,icon:"🔄",label:"Регулярные платежи",sub:`${props.recurringPayments.length} платежей`},
-      {id:"allocation" as MoreSection,icon:"💎",label:"Распределение",sub:`${props.goals.length} целей`},
+      {id:"recurring" as MoreSection,icon:"🔄",label:isBusiness?"Регулярные платежи":"Регулярные платежи",sub:`${props.recurringPayments.length} платежей`},
+      ...(!isBusiness ? [{id:"allocation" as MoreSection,icon:"💎",label:"Распределение",sub:`${props.goals.length} целей`}] : []),
     ]},
-    {title:"Семья",items:[
-      {id:"spaces" as MoreSection,icon:"🗂",label:"Пространства",sub:`${props.spaces.length} (личное + бизнесы)`},
+    {title:"Пространства и доступ",items:[
+      {id:"spaces" as MoreSection,icon:"🗂",label:"Пространства",sub:`${props.spaces.length} · личное + бизнесы`},
       {id:"profile" as MoreSection,icon:"👤",label:"Профиль",sub:props.userProfile.name},
-      {id:"family" as MoreSection,icon:"👨‍👩‍👧",label:"Семья",sub:"Наша семья"},
+      {id:"family" as MoreSection,icon:"👨‍👩‍👧",label:"Участники",sub:"Доступ к учёту"},
       {id:"notifications" as MoreSection,icon:"🔔",label:"Уведомления",sub:"Действия участников",badge:unread||undefined},
     ]},
     {title:"Прочее",items:[
@@ -302,8 +308,10 @@ export default function App() {
   const markNotifRead = (id:string) => { api.notifications.markRead(id).catch(()=>{}); setNotifications(prev=>prev.map(n=>n.id===id?{...n,read:true}:n)); };
   const markAllNotifRead = () => { api.notifications.markAllRead().catch(()=>{}); setNotifications(prev=>prev.map(n=>({...n,read:true}))); };
   const addBudget = (b:any) => guard(async()=>{ const bud=await api.budgets.create(b); setBudgets(prev=>[...prev,bud]); showToast('Бюджет создан','success'); }, 'Не удалось создать бюджет');
+  const updateBudget = (id:string,b:any) => guard(async()=>{ const bud=await api.budgets.update(id,b); setBudgets(prev=>prev.map(x=>x.id===id?bud:x)); showToast('Бюджет обновлён','success'); }, 'Не удалось обновить бюджет');
   const deleteBudget = (id:string) => guard(async()=>{ await api.budgets.delete(id); setBudgets(prev=>prev.filter(b=>b.id!==id)); }, 'Не удалось удалить бюджет');
   const addRecurring = (p:any) => guard(async()=>{ const r=await api.recurring.create(p); setRecurringPayments(prev=>[...prev,r]); showToast('Платёж добавлен','success'); }, 'Не удалось добавить платёж');
+  const updateRecurring = (id:string,p:any) => guard(async()=>{ const r=await api.recurring.update(id,p); setRecurringPayments(prev=>prev.map(x=>x.id===id?r:x)); showToast('Платёж обновлён','success'); }, 'Не удалось обновить платёж');
   const deleteRecurring = (id:string) => guard(async()=>{ await api.recurring.delete(id); setRecurringPayments(prev=>prev.filter(r=>r.id!==id)); }, 'Не удалось удалить платёж');
 
   const addPlanned = (p:any) => guard(async()=>{ const x=await api.planned.create(p); setPlannedItems(prev=>[...prev,x]); showToast(`${p.type==="income"?"📈 Ожидаемый доход":"📉 Ожидаемая трата"} добавлен`,'success'); }, 'Не удалось добавить план');
@@ -384,8 +392,8 @@ export default function App() {
     transactions, usdRate:settings.usd_rate, budgets, recurringPayments, totalSavings,
     onAllocationUpdate:updateAllocation, onCategoryAdd:addCategory, onCategoryDelete:deleteCategory,
     onSettingsUpdate:updateSettings, onMarkNotifRead:markNotifRead, onMarkAllNotifRead:markAllNotifRead,
-    onBudgetAdd:addBudget, onBudgetDelete:deleteBudget, onRecurringAdd:addRecurring,
-    onRecurringDelete:deleteRecurring, onRecurringMarkPaid:markRecurringPaid,
+    onBudgetAdd:addBudget, onBudgetEdit:updateBudget, onBudgetDelete:deleteBudget, onRecurringAdd:addRecurring,
+    onRecurringEdit:updateRecurring, onRecurringDelete:deleteRecurring, onRecurringMarkPaid:markRecurringPaid,
     plannedItems, onPlannedAdd:addPlanned, onPlannedEdit:updatePlanned, onPlannedDelete:deletePlanned, onPlannedConfirm:confirmPlanned,
     spaces, activeSpaceId, onSpaceSwitch:switchSpace, onSpaceAdd:addSpace, onSpaceEdit:updateSpace, onSpaceDelete:deleteSpace,
     contractors, onContractorAdd:addContractor, onContractorEdit:updateContractor, onContractorDelete:deleteContractor,
