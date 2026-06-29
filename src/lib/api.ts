@@ -119,6 +119,8 @@ export const api = {
       post<Notification>('/notifications', { title, body, type }),
     markRead: (id: string) => put<{ ok: boolean }>(`/notifications/${id}/read`, {}),
     markAllRead: () => put<{ ok: boolean }>('/notifications/read-all', {}),
+    delete: (id: string) => del<{ ok: boolean }>(`/notifications/${id}`),
+    clearAll: () => del<{ ok: boolean }>('/notifications'),
   },
 
   // ── Planned (ожидаемые доходы/траты, прогноз) ─────────────────

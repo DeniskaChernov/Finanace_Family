@@ -394,12 +394,24 @@ export function BudgetsScreen({ budgets,transactions,categories,onAdd,onEdit,onD
   // Конвертируем в сумы — иначе трата в USD считается по номиналу и занижает расход
   const getSpent=(category:string)=>transactions.filter(t=>t.type==="expense"&&t.category===category&&t.date.startsWith(mk)).reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const monthBudgets=budgets.filter(b=>b.month===mk);
+  const prevMk=addMonths(mk,-1);
+  const prevBudgets=budgets.filter(b=>b.month===prevMk);
+  const missingFromPrev=prevBudgets.filter(pb=>!monthBudgets.some(b=>b.category===pb.category));
+  const [copying,setCopying]=useState(false);
+  const copyFromPrev=async()=>{ setCopying(true); try{ for(const pb of missingFromPrev){ await onAdd({category:pb.category,month_limit:pb.month_limit,month:mk}); } }finally{ setCopying(false); } };
   return (
     <div className="pb-4">
       <div className="px-4 pb-4 flex items-center justify-between">
         <div><h2 className="text-xl font-bold">Бюджеты</h2><p className="text-xs text-muted-foreground">Лимиты на {MONTHS_RU[parseInt(mk.split("-")[1])-1]}</p></div>
         <button onClick={()=>{resetForm();setShowAdd(true);}} className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold"><Plus size={15}/>Добавить</button>
       </div>
+      {missingFromPrev.length>0&&(
+        <div className="px-4 mb-3">
+          <button onClick={copyFromPrev} disabled={copying} className="w-full py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50" style={{background:"var(--secondary)",color:"var(--secondary-foreground)"}}>
+            <Copy size={15}/>{copying?"Копирую...":`Скопировать ${missingFromPrev.length} бюджет(ов) с прошлого месяца`}
+          </button>
+        </div>
+      )}
       {monthBudgets.length===0?(
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground"><BarChart2 size={48} className="mb-3 opacity-20"/><p className="text-sm">Нет бюджетов на этот месяц</p></div>
       ):(
@@ -857,22 +869,32 @@ export function CategoriesScreen({ categories,onAdd,onDelete }: {
 }
 
 // ── Notifications ─────────────────────────────────────────────────────
-export function NotificationsScreen({ notifications,onMarkRead,onMarkAllRead }: {
+export function NotificationsScreen({ notifications,onMarkRead,onMarkAllRead,onDelete,onClear }: {
   notifications:Notification[]; onMarkRead:(id:string)=>void; onMarkAllRead:()=>void;
+  onDelete?:(id:string)=>void; onClear?:()=>void;
 }) {
   const icons:Record<string,string>={transaction:"💳",goal:"🎯",savings:"💰",member:"👋",system:"ℹ️"};
   const unread=notifications.filter(n=>!n.read).length;
+  const [confirmClear,setConfirmClear]=useState(false);
   return (
     <div className="pb-4">
-      <div className="px-4 pb-4 flex items-center justify-between"><div className="flex items-center gap-2"><h2 className="text-xl font-bold">Уведомления</h2>{unread>0&&<span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unread}</span>}</div>{unread>0&&<button onClick={onMarkAllRead} className="text-xs text-primary font-bold">Прочитать все</button>}</div>
+      <div className="px-4 pb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2"><h2 className="text-xl font-bold">Уведомления</h2>{unread>0&&<span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unread}</span>}</div>
+        <div className="flex items-center gap-3">
+          {unread>0&&<button onClick={onMarkAllRead} className="text-xs text-primary font-bold">Прочитать все</button>}
+          {onClear&&notifications.length>0&&<button onClick={()=>setConfirmClear(true)} className="text-xs text-rose-400 font-bold">Очистить</button>}
+        </div>
+      </div>
       {notifications.length===0?<div className="flex flex-col items-center justify-center py-20 text-muted-foreground"><Bell size={48} className="mb-3 opacity-20"/><p className="text-sm">Нет уведомлений</p></div>:
       <div className="px-4 space-y-2">{notifications.map(n=>(
-        <button key={n.id} onClick={()=>!n.read&&onMarkRead(n.id)} className={`w-full text-left rounded-2xl border p-4 flex items-start gap-3 ${n.read?"bg-card border-border":"bg-indigo-500/10 border-indigo-500/20"}`}>
-          <span className="text-xl flex-shrink-0">{icons[n.type]||"ℹ️"}</span>
-          <div className="flex-1 min-w-0"><p className="text-sm font-semibold">{n.title}</p><p className="text-xs text-muted-foreground mt-0.5">{n.body}</p><p className="text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_at)}</p></div>
+        <div key={n.id} className={`w-full rounded-2xl border p-4 flex items-start gap-3 ${n.read?"bg-card border-border":"bg-indigo-500/10 border-indigo-500/20"}`}>
+          <span className="text-xl flex-shrink-0" onClick={()=>!n.read&&onMarkRead(n.id)}>{icons[n.type]||"ℹ️"}</span>
+          <div className="flex-1 min-w-0" onClick={()=>!n.read&&onMarkRead(n.id)}><p className="text-sm font-semibold">{n.title}</p><p className="text-xs text-muted-foreground mt-0.5">{n.body}</p><p className="text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_at)}</p></div>
           {!n.read&&<div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1"/>}
-        </button>
+          {onDelete&&<button onClick={()=>onDelete(n.id)} className="text-muted-foreground hover:text-rose-400 p-1 flex-shrink-0"><Trash2 size={13}/></button>}
+        </div>
       ))}</div>}
+      {confirmClear&&onClear&&<ConfirmDialog title="Очистить все уведомления?" onConfirm={()=>{onClear();setConfirmClear(false);}} onCancel={()=>setConfirmClear(false)}/>}
     </div>
   );
 }

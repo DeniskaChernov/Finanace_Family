@@ -72,7 +72,7 @@ function MoreScreen(props: {
   onAllocationUpdate:(gid:string,amt:number)=>Promise<void>;
   onCategoryAdd:(n:string,t:TxType)=>Promise<void>; onCategoryDelete:(id:string)=>Promise<void>;
   onSettingsUpdate:(s:Partial<AppSettings>)=>Promise<void>;
-  onMarkNotifRead:(id:string)=>void; onMarkAllNotifRead:()=>void;
+  onMarkNotifRead:(id:string)=>void; onMarkAllNotifRead:()=>void; onDeleteNotif:(id:string)=>void; onClearNotifs:()=>void;
   onBudgetAdd:(b:any)=>Promise<void>; onBudgetEdit:(id:string,b:any)=>Promise<void>; onBudgetDelete:(id:string)=>Promise<void>;
   onRecurringAdd:(p:any)=>Promise<void>; onRecurringEdit:(id:string,p:any)=>Promise<void>; onRecurringDelete:(id:string)=>Promise<void>; onRecurringMarkPaid:(id:string)=>Promise<void>;
   plannedItems:PlannedItem[];
@@ -106,7 +106,7 @@ function MoreScreen(props: {
   if(section==="planned") return <div><Back title="Планы и прогноз"/><PlannedScreen items={props.plannedItems} categories={props.categories} contractors={props.contractors} usdRate={props.usdRate} onAdd={props.onPlannedAdd} onEdit={props.onPlannedEdit} onDelete={props.onPlannedDelete} onConfirm={props.onPlannedConfirm}/></div>;
   if(section==="calendar") return <div><Back title="Финансовый календарь"/><CalendarScreen transactions={props.transactions} recurringPayments={props.recurringPayments}/></div>;
   if(section==="report") return <div><Back title="Ежемесячный отчёт"/><MonthlyReportScreen transactions={props.transactions} usdRate={props.usdRate}/></div>;
-  if(section==="notifications") return <div><Back title="Уведомления"/><NotificationsScreen notifications={props.notifications} onMarkRead={props.onMarkNotifRead} onMarkAllRead={props.onMarkAllNotifRead}/></div>;
+  if(section==="notifications") return <div><Back title="Уведомления"/><NotificationsScreen notifications={props.notifications} onMarkRead={props.onMarkNotifRead} onMarkAllRead={props.onMarkAllNotifRead} onDelete={props.onDeleteNotif} onClear={props.onClearNotifs}/></div>;
   if(section==="allocation") return <div><Back title="Распределение"/><AllocationScreen goals={props.goals} totalSavings={props.totalSavings} onUpdate={props.onAllocationUpdate}/></div>;
   if(section==="categories") return <div><Back title="Справочник"/><CategoriesScreen categories={props.categories} onAdd={props.onCategoryAdd} onDelete={props.onCategoryDelete}/></div>;
   if(section==="export") return <div><Back title="Экспорт"/><ExportScreen transactions={props.transactions} goals={props.goals}/></div>;
@@ -308,6 +308,8 @@ export default function App() {
   const updateSettings = (s:Partial<AppSettings>) => guard(async()=>{ const u=await api.settings.update(s); setSettings(u); showToast('Настройки сохранены','success'); }, 'Не удалось сохранить настройки');
   const markNotifRead = (id:string) => { api.notifications.markRead(id).catch(()=>{}); setNotifications(prev=>prev.map(n=>n.id===id?{...n,read:true}:n)); };
   const markAllNotifRead = () => { api.notifications.markAllRead().catch(()=>{}); setNotifications(prev=>prev.map(n=>({...n,read:true}))); };
+  const deleteNotif = (id:string) => { api.notifications.delete(id).catch(()=>{}); setNotifications(prev=>prev.filter(n=>n.id!==id)); };
+  const clearNotifs = () => { api.notifications.clearAll().catch(()=>{}); setNotifications([]); showToast('Уведомления очищены','info'); };
   const addBudget = (b:any) => guard(async()=>{ const bud=await api.budgets.create(b); setBudgets(prev=>[...prev,bud]); showToast('Бюджет создан','success'); }, 'Не удалось создать бюджет');
   const updateBudget = (id:string,b:any) => guard(async()=>{ const bud=await api.budgets.update(id,b); setBudgets(prev=>prev.map(x=>x.id===id?bud:x)); showToast('Бюджет обновлён','success'); }, 'Не удалось обновить бюджет');
   const deleteBudget = (id:string) => guard(async()=>{ await api.budgets.delete(id); setBudgets(prev=>prev.filter(b=>b.id!==id)); }, 'Не удалось удалить бюджет');
@@ -401,7 +403,7 @@ export default function App() {
     userProfile, familyMembers, goals, categories, settings, notifications,
     transactions, usdRate:settings.usd_rate, budgets, recurringPayments, totalSavings,
     onAllocationUpdate:updateAllocation, onCategoryAdd:addCategory, onCategoryDelete:deleteCategory,
-    onSettingsUpdate:updateSettings, onMarkNotifRead:markNotifRead, onMarkAllNotifRead:markAllNotifRead,
+    onSettingsUpdate:updateSettings, onMarkNotifRead:markNotifRead, onMarkAllNotifRead:markAllNotifRead, onDeleteNotif:deleteNotif, onClearNotifs:clearNotifs,
     onBudgetAdd:addBudget, onBudgetEdit:updateBudget, onBudgetDelete:deleteBudget, onRecurringAdd:addRecurring,
     onRecurringEdit:updateRecurring, onRecurringDelete:deleteRecurring, onRecurringMarkPaid:markRecurringPaid,
     plannedItems, onPlannedAdd:addPlanned, onPlannedEdit:updatePlanned, onPlannedDelete:deletePlanned, onPlannedConfirm:confirmPlanned,

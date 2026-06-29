@@ -44,4 +44,22 @@ router.put('/read-all', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Очистить все уведомления
+router.delete('/', async (req, res) => {
+  const { family_id } = req.user;
+  try {
+    await pool.query('DELETE FROM notifications WHERE family_id=$1', [family_id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Удалить одно уведомление
+router.delete('/:id', async (req, res) => {
+  const { family_id } = req.user;
+  try {
+    await pool.query('DELETE FROM notifications WHERE id=$1 AND family_id=$2', [req.params.id, family_id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 export default router;
