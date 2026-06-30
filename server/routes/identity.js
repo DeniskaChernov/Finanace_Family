@@ -2,19 +2,22 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import pool from '../db.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
+const verifyLimit = rateLimit({ windowMs: 60000, max: 10, key: 'identity-verify' });
 
 // Секрет для кросс-приложенческих токенов (общий между приложениями проекта).
 // Фоллбэк на JWT_SECRET, чтобы работало до настройки переменной.
 const CROSS_APP_SECRET = process.env.CROSS_APP_SECRET || process.env.JWT_SECRET || 'family-budget-secret-2024';
 const SERVICE_KEY = process.env.SERVICE_KEY || '';
 
-// Проверка сервисного ключа (доступ только доверенным приложениям)
+// Проверка сервисного ключа (доступ только доверенным приложениям).
+// Без заданного SERVICE_KEY identity-API закрыт — иначе любой мог бы
+// перебирать ID и PIN. Это заставляет задать ключ в проде.
 function requireServiceKey(req, res, next) {
   if (!SERVICE_KEY) {
-    // ключ не задан — пропускаем, но предупреждаем (настройте SERVICE_KEY в проде!)
-    return next();
+    return res.status(503).json({ error: 'Identity-API не настроен (нет SERVICE_KEY)' });
   }
   if (req.headers['x-service-key'] !== SERVICE_KEY) {
     return res.status(401).json({ error: 'Неверный сервисный ключ' });
@@ -35,7 +38,7 @@ router.get('/:publicId', requireServiceKey, async (req, res) => {
 });
 
 // POST /api/identity/verify — { public_id, pin } → подтверждение + кросс-токен
-router.post('/verify', requireServiceKey, async (req, res) => {
+router.post('/verify', verifyLimit, requireServiceKey, async (req, res) => {
   const { public_id, pin } = req.body;
   try {
     const { rows } = await pool.query('SELECT id, public_id, name, password_hash FROM users WHERE public_id=$1', [public_id]);

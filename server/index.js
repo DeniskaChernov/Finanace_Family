@@ -28,6 +28,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// За прокси Railway — чтобы req.ip был реальным клиентом (для rate-limit)
+app.set('trust proxy', 1);
+
+// Предупреждения о секретах в проде
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET) console.warn('⚠️  JWT_SECRET не задан — токены подписаны публичным дефолтом! Задайте JWT_SECRET.');
+  if (!process.env.SERVICE_KEY) console.warn('⚠️  SERVICE_KEY не задан — identity-API закрыт (503), Планер не сможет связаться.');
+  if (!process.env.CROSS_APP_SECRET) console.warn('⚠️  CROSS_APP_SECRET не задан — кросс-токены подписаны фоллбэком.');
+}
+
 app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));

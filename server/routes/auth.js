@@ -3,9 +3,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { genPublicId, genUserId, genFamilyId } from '../util/id.js';
 
 const router = Router();
+const loginLimit = rateLimit({ windowMs: 60000, max: 10, key: 'login' });
+const registerLimit = rateLimit({ windowMs: 600000, max: 5, key: 'register' });
 const JWT_SECRET = process.env.JWT_SECRET || 'family-budget-secret-2024';
 
 const signToken = (u) => jwt.sign(
@@ -26,7 +29,7 @@ const DEFAULT_CATS = [
 ];
 
 // POST /api/auth/register — новый аккаунт по ID + PIN (бутстрап своего пространства)
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimit, async (req, res) => {
   const { name, pin } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Укажите имя' });
   if (!pin || String(pin).length < 4) return res.status(400).json({ error: 'PIN минимум 4 символа' });
@@ -79,7 +82,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login-id — вход по public_id + PIN
-router.post('/login-id', async (req, res) => {
+router.post('/login-id', loginLimit, async (req, res) => {
   const { public_id, pin } = req.body;
   if (!public_id || !pin) return res.status(400).json({ error: 'Укажите ID и PIN' });
   try {
@@ -93,7 +96,7 @@ router.post('/login-id', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimit, async (req, res) => {
   const { name, password } = req.body;
   if (!name || !password) return res.status(400).json({ error: 'Укажите имя и пароль' });
 
@@ -147,7 +150,7 @@ router.get('/me', async (req, res) => {
 });
 
 // POST /api/auth/change-password
-router.post('/change-password', authMiddleware, async (req, res) => {
+router.post('/change-password', authMiddleware, loginLimit, async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   if (!newPassword || String(newPassword).length < 4) return res.status(400).json({ error: 'Новый пароль слишком короткий (мин. 4 символа)' });
   try {
@@ -167,7 +170,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `UPDATE users SET name=COALESCE($1,name), phone=$2, color=COALESCE($3,color)
-       WHERE id=$4 RETURNING id,name,phone,family_id,role,avatar,color,created_at`,
+       WHERE id=$4 RETURNING id,public_id,name,phone,family_id,role,avatar,color,created_at`,
       [name ?? null, phone ?? null, color ?? null, req.user.id]
     );
     res.json(rows[0]);
