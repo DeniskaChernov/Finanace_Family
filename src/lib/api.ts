@@ -55,6 +55,10 @@ export const api = {
   auth: {
     login: (name: string, password: string) =>
       post<{ token: string; user: AppUser }>('/auth/login', { name, password }),
+    register: (name: string, pin: string) =>
+      post<{ token: string; user: AppUser }>('/auth/register', { name, pin }),
+    loginById: (public_id: string, pin: string) =>
+      post<{ token: string; user: AppUser }>('/auth/login-id', { public_id, pin }),
     me: () => get<AppUser>('/auth/me'),
     familyMembers: () => get<AppUser[]>('/auth/family-members'),
     changePassword: (oldPassword: string, newPassword: string) =>

@@ -3,9 +3,94 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { genPublicId, genUserId, genFamilyId } from '../util/id.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'family-budget-secret-2024';
+
+const signToken = (u) => jwt.sign(
+  { id: u.id, name: u.name, family_id: u.family_id, role: u.role },
+  JWT_SECRET, { expiresIn: '30d' }
+);
+const publicUser = (u) => ({
+  id: u.id, public_id: u.public_id, name: u.name, phone: u.phone,
+  family_id: u.family_id, role: u.role, avatar: u.avatar, color: u.color, created_at: u.created_at,
+});
+
+// Личные категории по умолчанию для нового аккаунта
+const DEFAULT_CATS = [
+  ['Зарплата', 'income'], ['Подработка', 'income'], ['Прочее', 'income'],
+  ['Продукты', 'expense'], ['Кафе и рестораны', 'expense'], ['Транспорт', 'expense'],
+  ['Коммунальные', 'expense'], ['Одежда', 'expense'], ['Здоровье', 'expense'],
+  ['Развлечения', 'expense'], ['Прочее', 'expense'],
+];
+
+// POST /api/auth/register — новый аккаунт по ID + PIN (бутстрап своего пространства)
+router.post('/register', async (req, res) => {
+  const { name, pin } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Укажите имя' });
+  if (!pin || String(pin).length < 4) return res.status(400).json({ error: 'PIN минимум 4 символа' });
+  const client = await pool.connect();
+  try {
+    const userId = genUserId();
+    const familyId = genFamilyId();
+    const hash = await bcrypt.hash(String(pin), 10);
+    // уникальный public_id с парой попыток
+    let publicId = genPublicId();
+    for (let i = 0; i < 5; i++) {
+      const { rows } = await client.query('SELECT 1 FROM users WHERE public_id=$1', [publicId]);
+      if (!rows.length) break;
+      publicId = genPublicId();
+    }
+    await client.query('BEGIN');
+    await client.query(
+      'INSERT INTO families (id, family_name, created_by, invite_code) VALUES ($1,$2,$3,$4)',
+      [familyId, `Аккаунт ${name.trim()}`, userId, publicId]
+    );
+    const { rows: urows } = await client.query(
+      `INSERT INTO users (id, public_id, name, password_hash, family_id, role, avatar, color)
+       VALUES ($1,$2,$3,$4,$5,'owner',$6,'bg-indigo-500') RETURNING *`,
+      [userId, publicId, name.trim(), hash, familyId, name.trim()[0].toUpperCase()]
+    );
+    await client.query(
+      `INSERT INTO settings (id, family_id, usd_rate, quick_actions) VALUES ($1,$2,12700,'Продукты,Такси,Кафе,Интернет')`,
+      [`set-${familyId}`, familyId]
+    );
+    await client.query(
+      `INSERT INTO spaces (id, family_id, name, type, icon, color) VALUES ($1,$2,'Личное','family','🏠','#6366f1')`,
+      [familyId, familyId]
+    );
+    for (const [cname, ctype] of DEFAULT_CATS) {
+      await client.query(
+        'INSERT INTO categories (id,family_id,name,type,is_default) VALUES ($1,$2,$3,$4,true)',
+        [genUserId().replace('usr-', 'cat-'), familyId, cname, ctype]
+      );
+    }
+    await client.query('COMMIT');
+    const u = urows[0];
+    res.status(201).json({ token: signToken(u), user: publicUser(u) });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('register', e);
+    res.status(500).json({ error: 'Не удалось создать аккаунт' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/auth/login-id — вход по public_id + PIN
+router.post('/login-id', async (req, res) => {
+  const { public_id, pin } = req.body;
+  if (!public_id || !pin) return res.status(400).json({ error: 'Укажите ID и PIN' });
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE UPPER(public_id)=UPPER($1)', [public_id]);
+    if (!rows.length) return res.status(401).json({ error: 'ID не найден' });
+    const user = rows[0];
+    const ok = await bcrypt.compare(String(pin), user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Неверный PIN' });
+    res.json({ token: signToken(user), user: publicUser(user) });
+  } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
+});
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
