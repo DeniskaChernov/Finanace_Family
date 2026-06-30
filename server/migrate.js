@@ -1,4 +1,5 @@
 import pool from './db.js';
+import { genPublicId } from './util/id.js';
 
 export async function migrate() {
   const client = await pool.connect();
@@ -178,6 +179,9 @@ export async function migrate() {
     // Связь с контрагентами (добавляется к существующим таблицам)
     await client.query(`ALTER TABLE transactions  ADD COLUMN IF NOT EXISTS contractor_id TEXT;`);
     await client.query(`ALTER TABLE planned_items ADD COLUMN IF NOT EXISTS contractor_id TEXT;`);
+    // Публичный «Finance ID» — общий идентификатор для связи с другими приложениями
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS public_id TEXT;`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_public_id_uniq ON users(public_id) WHERE public_id IS NOT NULL;`);
     console.log('✅ Database migrated');
 
     // ── Идемпотентный самоисцеляющий сид (выполняется при каждом старте) ──
@@ -209,6 +213,18 @@ export async function migrate() {
       UPDATE users SET family_id = 'fam-001' WHERE id IN ('usr-001','usr-002');
       UPDATE users SET family_id = 'fam-001' WHERE family_id IS NULL;
     `);
+
+    // 3b. Выдаём public_id («Finance ID») всем, у кого его ещё нет — недеструктивно
+    const { rows: noPub } = await client.query("SELECT id FROM users WHERE public_id IS NULL OR public_id = ''");
+    for (const u of noPub) {
+      let ok = false;
+      for (let attempt = 0; attempt < 5 && !ok; attempt++) {
+        try {
+          await client.query('UPDATE users SET public_id=$1 WHERE id=$2', [genPublicId(), u.id]);
+          ok = true;
+        } catch { /* коллизия уникальности — пробуем ещё */ }
+      }
+    }
 
     // 4. Привязываем осиротевшие данные (family_id IS NULL) к семье —
     //    чтобы уже добавленные транзакции/категории/цели снова стали видны.

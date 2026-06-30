@@ -20,6 +20,7 @@ import pushRouter from './routes/push.js';
 import plannedRouter from './routes/planned.js';
 import spacesRouter from './routes/spaces.js';
 import contractorsRouter from './routes/contractors.js';
+import identityRouter from './routes/identity.js';
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.get('/api/diag', async (req, res) => {
 
 // Public routes
 app.use('/api/auth', authRouter);
+app.use('/api/identity', identityRouter); // защищён сервис-ключом внутри
 
 // Protected routes
 app.use('/api/transactions', authMiddleware, transactionsRouter);

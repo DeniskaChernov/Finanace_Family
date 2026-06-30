@@ -938,6 +938,16 @@ export function ProfileScreen({ userProfile,onLogout,onChangePassword,onUpdatePr
           <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-3xl font-bold">{userProfile.name[0]}</div>
           <div><p className="text-xl font-bold">{userProfile.name}</p><div className="flex items-center gap-1.5 mt-1">{userProfile.role==="owner"?<Crown size={13} className="text-amber-300"/>:<Users size={13} className="text-white/70"/>}<p className="text-sm opacity-80">{userProfile.role==="owner"?"Владелец семьи":"Участник"}</p></div></div>
         </div>
+        {userProfile.public_id&&(
+          <Card className="p-4">
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Мой Finance ID</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-lg font-bold font-mono tracking-wider px-3 py-2 rounded-xl bg-[var(--input-background)] border border-border">{userProfile.public_id}</code>
+              <button onClick={()=>{navigator.clipboard?.writeText(userProfile.public_id||"");}} className="px-3 py-2.5 rounded-xl bg-primary text-white text-xs font-bold flex items-center gap-1.5"><Copy size={14}/>Копировать</button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">Вставьте этот ID в поле «Finance ID» в других приложениях, чтобы связать аккаунты.</p>
+          </Card>
+        )}
         <Card className="p-5 space-y-3">
           {[{l:"Имя",v:userProfile.name},{l:"Телефон",v:userProfile.phone||"Не указан"},{l:"Роль",v:userProfile.role==="owner"?"Владелец":"Участник"}].map(item=>(
             <div key={item.l} className="flex justify-between items-center py-2 border-b border-border last:border-0"><span className="text-sm text-muted-foreground">{item.l}</span><span className="text-sm font-semibold">{item.v}</span></div>

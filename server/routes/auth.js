@@ -30,6 +30,7 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: user.id,
+        public_id: user.public_id,
         name: user.name,
         phone: user.phone,
         family_id: user.family_id,
@@ -54,7 +55,7 @@ router.get('/me', async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM users WHERE id=$1', [payload.id]);
     if (!rows.length) return res.status(404).json({ error: 'Не найден' });
     const u = rows[0];
-    res.json({ id: u.id, name: u.name, phone: u.phone, family_id: u.family_id, role: u.role, avatar: u.avatar, color: u.color, created_at: u.created_at });
+    res.json({ id: u.id, public_id: u.public_id, name: u.name, phone: u.phone, family_id: u.family_id, role: u.role, avatar: u.avatar, color: u.color, created_at: u.created_at });
   } catch {
     res.status(401).json({ error: 'Токен недействителен' });
   }

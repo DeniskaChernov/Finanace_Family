@@ -156,7 +156,7 @@ export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type Currency = 'UZS' | 'USD';
 
 export interface AppUser {
-  id: string; name: string; phone: string | null;
+  id: string; public_id?: string | null; name: string; phone: string | null;
   family_id: string | null; role: UserRole;
   avatar: string; color: string; created_at: string;
 }
