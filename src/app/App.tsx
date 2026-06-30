@@ -40,7 +40,7 @@ function BottomNav({ active,onChange,unreadNotif,profileName }: { active:TabType
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-30 px-3"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', paddingTop: '8px' }}>
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', paddingTop: '20px', background: 'linear-gradient(to bottom, transparent, var(--background) 45%)' }}>
       <div className="glass rounded-[1.4rem] flex" style={{ boxShadow: 'var(--shadow-lg)', border: '1px solid var(--glass-border)' }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => onChange(t.id)}
