@@ -84,10 +84,11 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
   const monthTx = transactions.filter(t=>t.date.startsWith(mk));
   const income = monthTx.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
   const expense = monthTx.filter(t=>t.type==="expense").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
-  const balance = income - expense;
-  const balanceAnim = useCountUp(balance);
+  const balance = income - expense; // за текущий месяц (для инсайтов/прогноза)
+  // Накопленный баланс за всё время — переходит из месяца в месяц (это «деньги на балансе»)
   const totalSavings = transactions.filter(t=>t.type==="income").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0)
     - transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+toUZS(t.amount,t.currency??"UZS",usdRate),0);
+  const balanceAnim = useCountUp(totalSavings);
   const totalAllocated = goals.reduce((s,g)=>s+g.allocated,0);
   const completedGoals = goals.filter(g=>g.allocated>=g.target_amount&&g.target_amount>0).length;
 
@@ -178,10 +179,11 @@ export function DashboardScreen({ transactions,goals,usdRate,userProfile,familyM
             style={{background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 48%,#a855f7 100%)",boxShadow:"0 24px 60px -12px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.25)"}}>
             <div className="absolute top-0 right-0 w-52 h-52 rounded-full opacity-15 blur-2xl" style={{background:"white",transform:"translate(35%,-35%)"}}/>
             <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 blur-2xl" style={{background:"#22d3ee",transform:"translate(-30%,40%)"}}/>
-            <p className="text-xs opacity-75 mb-2 relative uppercase tracking-widest font-semibold">Баланс за месяц</p>
+            <p className="text-xs opacity-75 mb-2 relative uppercase tracking-widest font-semibold">Баланс · накоплено</p>
             <p className="font-display relative leading-none" style={{fontSize:"clamp(1.5rem, 8vw, 2.5rem)",textShadow:"0 2px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-              {balance>=0?"+":"−"}{fmtUZS(Math.abs(balanceAnim))}
+              {totalSavings>=0?"":"−"}{fmtUZS(Math.abs(balanceAnim))}
             </p>
+            <p className="text-[11px] opacity-70 mt-1 relative">За {now.toLocaleDateString("ru-RU",{month:"long"})}: {balance>=0?"+":"−"}{fmtUZS(Math.abs(balance))}</p>
             <div className="flex gap-3 mt-6 relative">
               <div className="flex items-center gap-2 flex-1 rounded-2xl px-3 py-2.5" style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(8px)"}}>
                 <div className="w-8 h-8 rounded-xl bg-emerald-400/30 flex items-center justify-center">
